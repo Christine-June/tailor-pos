@@ -32,12 +32,15 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] API client with error handling (14 frontend tests)
 - [x] `docker compose up` runs database + API with demo data + frontend
 
-## Phase 3: Checkout (POS)
-- [ ] Item grid with search and categories
-- [ ] Cart: quantities in metres, custom lines, discount (owner only)
-- [ ] Customer picker and quick-add
-- [ ] Split tender dialog (cash with change, M-Pesa code, card)
-- [ ] Receipt: browser print plus thermal print
+## Phase 3: Checkout (POS) ✅
+- [x] Item grid with search and categories, stock left on each item
+- [x] Cart: quantities in metres, custom lines, discount (owner only), stock warnings
+- [x] Sale or custom order: customer, measurements, collection date, minimum deposit
+- [x] Customer picker and quick-add (warns on a phone number already in use)
+- [x] Split tender dialog (cash with change, M-Pesa code, card)
+- [x] Receipt: browser print plus thermal print
+- [x] Cart survives a page reload; a retried sale is never recorded twice
+- [x] Money maths in whole cents, matching the server (37 frontend tests)
 
 ## Phase 4: Customers and measurements
 - [ ] Customer list and profile

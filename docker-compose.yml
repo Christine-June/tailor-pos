@@ -39,6 +39,8 @@ services:
       - web_node_modules:/app/node_modules
     environment:
       VITE_PROXY_TARGET: http://api:5000
+      # Picks up code edits reliably inside Docker; costs a little CPU.
+      VITE_POLL: "1"
     command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"

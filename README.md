@@ -35,10 +35,10 @@ tailor-pos/
 │   └── run.py
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      layout, route guards, ui/ (shadcn)
-│   │   ├── lib/             api client, navigation rules, types
-│   │   ├── pages/           login and screens
-│   │   ├── store/           Redux Toolkit (session)
+│   │   ├── components/      layout, route guards, receipt, ui/ (shadcn)
+│   │   ├── lib/             api client, money and checkout rules, types
+│   │   ├── pages/           login, sell/ (checkout) and other screens
+│   │   ├── store/           Redux Toolkit (session, cart)
 │   │   └── App.tsx          routes
 │   └── vite.config.ts
 ├── docker-compose.yml       local development stack
@@ -76,7 +76,7 @@ docker compose run --rm --no-deps web sh -c "npm ci && npm test"
 
 ## Key design decisions
 
-- **Money is never a float.** Prices are `NUMERIC` in the database, `Decimal` in Python, and strings in JSON.
+- **Money is never a float.** Prices are `NUMERIC` in the database, `Decimal` in Python, strings in JSON, and whole cents (`bigint`) in the browser, rounded exactly as the server rounds.
 - **Payments are a ledger.** Each tender (cash, M-Pesa, card) is its own row; the amount paid is always summed from it. Refunds are negative rows. Rows can't be edited or deleted, which the database enforces.
 - **Measurements are append-only.** A new fitting is a new record, so an order always points at the exact numbers it was cut from.
 - **Production stage and payment are separate.** An order can be at Stitching and part-paid at the same time. It can't be handed over with a balance unless the owner allows credit.

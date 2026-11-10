@@ -87,6 +87,28 @@
   --color-sidebar-active: var(--sidebar-active);
 }
 
+/* Browser receipt printing: only the receipt, at 80 mm roll width (also fine on A4). */
+#print-root {
+  display: none;
+}
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block;
+  }
+  #print-root .receipt {
+    max-width: none;
+    width: 72mm;
+    padding: 2mm;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

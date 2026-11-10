@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 
 import { AppLayout } from "@/components/layout/AppLayout"
@@ -6,6 +7,12 @@ import { NAV } from "@/lib/nav"
 import { ComingSoonPage } from "@/pages/ComingSoonPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+import { SellPage } from "@/pages/sell/SellPage"
+
+// Screens built so far; the rest show which phase builds them.
+const PAGES: Record<string, ReactNode> = {
+  "/sell": <SellPage />,
+}
 
 export default function App() {
   return (
@@ -25,9 +32,7 @@ export default function App() {
               key={item.to}
               path={item.to.slice(1) + "/*"}
               element={
-                <RequireRole path={item.to}>
-                  <ComingSoonPage item={item} />
-                </RequireRole>
+                <RequireRole path={item.to}>{PAGES[item.to] ?? <ComingSoonPage item={item} />}</RequireRole>
               }
             />
           ))}

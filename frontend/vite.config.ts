@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // Docker on Windows (or a project under /mnt/c in WSL) doesn't pass file-change events
+      // into the container, so poll instead. Set VITE_POLL=1 in docker-compose.yml.
+      watch: env.VITE_POLL ? { usePolling: true, interval: 300 } : undefined,
       // The browser only ever talks to its own origin; Vite forwards /api to Flask.
       proxy: {
         "/api": { target: env.VITE_PROXY_TARGET || "http://localhost:5000", changeOrigin: true },

@@ -1,45 +1,50 @@
 import { configureStore } from "@reduxjs/toolkit"
 import { useDispatch, useSelector } from "react-redux"
 
+import type { Cart } from "@/lib/checkout"
 import { configureApi } from "@/lib/api"
 import authReducer, { accessTokenRefreshed, emptyAuth, signedOut, type AuthState } from "./authSlice"
+import cartReducer, { emptyCart } from "./cartSlice"
 
-// Phase 6 moves persistence to IndexedDB along with the offline outbox. For now the
-// session lives in localStorage so a page reload doesn't sign staff out.
+// Phase 6 moves persistence to IndexedDB along with the offline outbox. For now the session
+// and the open cart live in localStorage, so a page reload doesn't lose either.
 const SESSION_KEY = "tailorpos.session.v1"
+const CART_KEY = "tailorpos.cart.v1"
 
-function loadSession(): AuthState {
+function load<T>(key: string, valid: (value: T) => boolean, fallback: () => T): T {
   try {
-    const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) return emptyAuth
-    const parsed = JSON.parse(raw) as AuthState
-    return parsed?.refreshToken && parsed.user ? parsed : emptyAuth
+    const raw = localStorage.getItem(key)
+    if (!raw) return fallback()
+    const parsed = JSON.parse(raw) as T
+    return parsed && valid(parsed) ? parsed : fallback()
   } catch {
-    return emptyAuth
+    return fallback()
   }
 }
 
-function saveSession(state: AuthState) {
+function save(key: string, value: unknown | null) {
   try {
-    if (state.refreshToken) localStorage.setItem(SESSION_KEY, JSON.stringify(state))
-    else localStorage.removeItem(SESSION_KEY)
+    if (value === null) localStorage.removeItem(key)
+    else localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // Private browsing or full storage: the session just won't survive a reload.
+    // Private browsing or full storage: state just won't survive a reload.
   }
 }
+
+const auth = load<AuthState>(SESSION_KEY, (s) => !!s.refreshToken && !!s.user, () => emptyAuth)
+const cart = auth.user ? load<Cart>(CART_KEY, (c) => typeof c.saleId === "string" && Array.isArray(c.lines), () => emptyCart()) : emptyCart()
 
 export const store = configureStore({
-  reducer: { auth: authReducer },
-  preloadedState: { auth: loadSession() },
+  reducer: { auth: authReducer, cart: cartReducer },
+  preloadedState: { auth, cart },
 })
 
-let lastAuth = store.getState().auth
+let last = store.getState()
 store.subscribe(() => {
-  const auth = store.getState().auth
-  if (auth !== lastAuth) {
-    lastAuth = auth
-    saveSession(auth)
-  }
+  const state = store.getState()
+  if (state.auth !== last.auth) save(SESSION_KEY, state.auth.refreshToken ? state.auth : null)
+  if (state.cart !== last.cart) save(CART_KEY, state.cart.lines.length || state.cart.customer ? state.cart : null)
+  last = state
 })
 
 configureApi({
