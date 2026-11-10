@@ -27,4 +27,21 @@ export function trimZeros(value: string): string {
   return value.includes(".") ? value.replace(/\.?0+$/, "") : value
 }
 
+export const STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  confirmed: "Confirmed",
+  cutting: "Cutting",
+  stitching: "Stitching",
+  fitting: "Fitting",
+  alterations: "Alterations",
+  ready: "Ready",
+  completed: "Collected",
+  cancelled: "Cancelled",
+}
+
+/** Short date like "10 Nov 2026" in the shop's timezone. */
+export function formatDay(iso: string, timeZone = "Africa/Nairobi"): string {
+  return new Intl.DateTimeFormat("en-KE", { timeZone, day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso))
+}
+
 export const METHOD_LABEL: Record<string, string> = { cash: "Cash", mpesa: "M-Pesa", card: "Card", bank: "Bank", other: "Other" }

@@ -7,11 +7,13 @@ import { NAV } from "@/lib/nav"
 import { ComingSoonPage } from "@/pages/ComingSoonPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
+import { CustomersPage } from "@/pages/customers/CustomersPage"
 import { SellPage } from "@/pages/sell/SellPage"
 
 // Screens built so far; the rest show which phase builds them.
 const PAGES: Record<string, ReactNode> = {
   "/sell": <SellPage />,
+  "/customers": <CustomersPage />,
 }
 
 export default function App() {

@@ -40,13 +40,15 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Split tender dialog (cash with change, M-Pesa code, card)
 - [x] Receipt: browser print plus thermal print
 - [x] Cart survives a page reload; a retried sale is never recorded twice
-- [x] Money maths in whole cents, matching the server (37 frontend tests)
+- [x] Money maths in whole cents, matching the server
 
-## Phase 4: Customers and measurements
-- [ ] Customer list and profile
-- [ ] New fitting form (standard and custom fields, in/cm)
-- [ ] Side-by-side comparison of two fittings with changes highlighted
-- [ ] Which jobs each fitting is locked to
+## Phase 4: Customers and measurements ✅
+- [x] Customer list with search, profile, edit and archive (tailors can view, not edit)
+- [x] New fitting form (standard and custom fields, in/cm with automatic conversion)
+- [x] "Start from the last fitting" so only changes need typing
+- [x] Side-by-side comparison of two fittings with changes highlighted (works across in/cm)
+- [x] Which jobs each fitting is locked to
+- [x] Customer's orders and total balance owed (front desk only)
 
 ## Phase 5: Orders and workshop
 - [ ] Orders list (filters: status, unpaid balance, search)
