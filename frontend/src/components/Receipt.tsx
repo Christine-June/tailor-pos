@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 
 import { formatDate, formatDateTime, formatPhone, METHOD_LABEL, trimZeros } from "@/lib/format"
@@ -85,12 +86,20 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
   )
 }
 
-/** Mounts the receipt where the print stylesheet looks for it. */
-export function PrintableReceipt({ order, shop }: { order: Order; shop: Shop }) {
+/** Mounts a document where the print stylesheet looks for it. Only one may be mounted at a time. */
+export function PrintRoot({ children }: { children: ReactNode }) {
   return createPortal(
     <div id="print-root" aria-hidden="true">
-      <Receipt order={order} shop={shop} />
+      {children}
     </div>,
     document.body,
+  )
+}
+
+export function PrintableReceipt({ order, shop }: { order: Order; shop: Shop }) {
+  return (
+    <PrintRoot>
+      <Receipt order={order} shop={shop} />
+    </PrintRoot>
   )
 }

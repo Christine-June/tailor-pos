@@ -50,11 +50,14 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Which jobs each fitting is locked to
 - [x] Customer's orders and total balance owed (front desk only)
 
-## Phase 5: Orders and workshop
-- [ ] Orders list (filters: status, unpaid balance, search)
-- [ ] Order detail: take balance, timeline, cancel/refund, print job card
-- [ ] Kanban board with drag and drop (mouse and touch)
-- [ ] Conflict handling when two people move the same card
+## Phase 5: Orders and workshop ✅
+- [x] Orders list (filters: status, balance owing, sale or custom order, search), overdue flags
+- [x] Order detail: take balance, history, cancel (refund or keep deposit, restock), refund, print receipt and job card
+- [x] Edit order: collection date, tailor, notes, which fitting to cut from (until cutting starts)
+- [x] Hand-over blocked while money is owed (owner can release on credit)
+- [x] Kanban board with drag and drop (mouse and touch grip) plus a "Move to" menu
+- [x] Conflict handling when two people move the same card; board refreshes every 30 s
+- [x] Tailors see job cards with measurements but no prices
 
 ## Phase 6: Offline mode
 - [ ] Redux Toolkit store with persistence (IndexedDB)

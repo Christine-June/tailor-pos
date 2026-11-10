@@ -21,6 +21,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.environ.get("JWT_ACCESS_MINUTES", "60")))
     # Long enough that a shop can sit through a multi-week connectivity problem without losing its outbox.
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.environ.get("JWT_REFRESH_DAYS", "30")))
+    # Tolerates small server clock corrections (seen with Docker Desktop and cloud VMs). Without it a
+    # token issued a moment before the clock steps back is briefly "not yet valid" and staff get a 401.
+    JWT_DECODE_LEEWAY = 10
 
     SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 1800}

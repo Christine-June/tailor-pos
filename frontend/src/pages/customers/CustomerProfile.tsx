@@ -326,7 +326,8 @@ function CustomerOrders({ customerId, timeZone }: { customerId: string; timeZone
       )}
       <ul className="divide-y overflow-hidden rounded-lg border bg-card">
         {orders.map((o) => (
-          <li key={o.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm">
+          <li key={o.id}>
+            <Link to={`/orders/${o.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm hover:bg-accent/60">
             <span className="font-medium">#{o.number}</span>
             <Badge variant={o.status === "cancelled" ? "outline" : "secondary"}>{STATUS_LABEL[o.status] ?? o.status}</Badge>
             <span className="text-muted-foreground">{o.kind === "bespoke" ? "Custom order" : "Sale"}</span>
@@ -335,6 +336,7 @@ function CustomerOrders({ customerId, timeZone }: { customerId: string; timeZone
               {formatMoney(o.total)}
               {cents(o.balance) > 0n && <span className="block text-xs text-destructive">{formatMoney(o.balance)} due</span>}
             </span>
+            </Link>
           </li>
         ))}
       </ul>

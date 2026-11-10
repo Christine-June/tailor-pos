@@ -135,6 +135,37 @@ export interface Order {
   completed_at: string | null
 }
 
+export interface OrderEvent {
+  from_status: OrderStatus | null
+  to_status: OrderStatus
+  note: string | null
+  user: string | null
+  created_at: string
+}
+
+export interface OrderDetail extends Order {
+  events: OrderEvent[]
+}
+
+/** What the workshop sees: no prices or payments. */
+export interface JobCard {
+  id: string
+  number: number
+  status: OrderStatus
+  customer_name: string
+  assigned_to: { id: string; name: string } | null
+  items: { description: string; quantity: string; notes: string | null }[]
+  measurement: Measurement | null
+  due_date: string | null
+  notes: string | null
+}
+
+export interface StaffMember {
+  id: string
+  name: string
+  role: Role
+}
+
 export interface Page<T> {
   items: T[]
   total?: number

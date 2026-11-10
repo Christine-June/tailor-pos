@@ -8,12 +8,16 @@ import { ComingSoonPage } from "@/pages/ComingSoonPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { CustomersPage } from "@/pages/customers/CustomersPage"
+import { OrdersPage } from "@/pages/orders/OrdersPage"
 import { SellPage } from "@/pages/sell/SellPage"
+import { WorkshopPage } from "@/pages/workshop/WorkshopPage"
 
 // Screens built so far; the rest show which phase builds them.
 const PAGES: Record<string, ReactNode> = {
   "/sell": <SellPage />,
   "/customers": <CustomersPage />,
+  "/orders": <OrdersPage />,
+  "/workshop": <WorkshopPage />,
 }
 
 export default function App() {
