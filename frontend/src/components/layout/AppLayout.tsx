@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
-import { LogOut, Menu, Wifi, WifiOff, X } from "lucide-react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { AlertTriangle, CloudUpload, Loader2, LogOut, Menu, Wifi, WifiOff, X } from "lucide-react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import { Dialog } from "@/components/ui/dialog"
 import { useOnline } from "@/hooks/useOnline"
+import { useOutbox, useSyncStatus } from "@/hooks/useSync"
 import { api } from "@/lib/api"
 import { navFor, NAV, type NavItem } from "@/lib/nav"
 import type { Shop, User } from "@/lib/types"
@@ -43,8 +45,12 @@ export function AppLayout() {
   const online = useOnline()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const outbox = useOutbox()
+  const sync = useSyncStatus()
+  const unsynced = outbox.total
   const items = navFor(user.role)
-  const current = NAV.find((n) => location.pathname.startsWith(n.to))
+  const current = NAV.find((n) => location.pathname.startsWith(n.to)) ?? (location.pathname.startsWith("/sync") ? { label: "Sync" } : undefined)
 
   // Picks up role or shop changes made elsewhere; a deactivated account is signed out by the API client.
   useEffect(() => {
@@ -114,6 +120,19 @@ export function AppLayout() {
           </Button>
           <h1 className="truncate text-lg font-semibold">{current?.label ?? shop.name}</h1>
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
+            {(outbox.total > 0 || sync.running) && (
+              <Link
+                to="/sync"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                  outbox.failed.length ? "bg-destructive/10 text-destructive" : "bg-accent text-accent-foreground",
+                )}
+                aria-label={`${outbox.pending.length} waiting to sync, ${outbox.failed.length} need attention`}
+              >
+                {outbox.failed.length ? <AlertTriangle className="size-3.5" /> : sync.running ? <Loader2 className="size-3.5 animate-spin" /> : <CloudUpload className="size-3.5" />}
+                {outbox.failed.length ? `${outbox.failed.length} need attention` : `${outbox.pending.length} to sync`}
+              </Link>
+            )}
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
@@ -128,15 +147,52 @@ export function AppLayout() {
               <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-muted-foreground">{ROLE_LABEL[user.role]}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => dispatch(signedOut())}>
+            <Button variant="outline" size="sm" onClick={() => (unsynced > 0 ? setConfirmSignOut(true) : dispatch(signedOut()))}>
               <LogOut aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </header>
+        {!online && (
+          <div role="status" className="flex items-center gap-2 border-b bg-warning/15 px-4 py-2 text-sm text-accent-foreground md:px-6">
+            <WifiOff className="size-4 shrink-0" aria-hidden="true" />
+            <span>
+              You're offline. Sales and payments are saved on this device and sync when the internet is back. Other changes need a connection.
+            </span>
+          </div>
+        )}
         <main className="flex-1 p-4 md:p-6">
           <Outlet />
         </main>
+        <Dialog
+          open={confirmSignOut}
+          onClose={() => setConfirmSignOut(false)}
+          title="Some work hasn't synced yet"
+          description={`${unsynced} ${unsynced === 1 ? "item is" : "items are"} saved on this device but not on the server.`}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setConfirmSignOut(false)}>
+                Stay signed in
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setConfirmSignOut(false)
+                  dispatch(signedOut())
+                }}
+              >
+                Sign out anyway
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm">
+            They stay on this device and sync after the next person from your shop signs in here. Staying signed in until they sync is best.{" "}
+            <Link to="/sync" className="underline underline-offset-4" onClick={() => setConfirmSignOut(false)}>
+              See what's waiting
+            </Link>
+          </p>
+        </Dialog>
       </div>
     </div>
   )

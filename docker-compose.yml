@@ -47,6 +47,24 @@ services:
     depends_on:
       - api
 
+  # The production build with offline support (service worker), for trying the installable app:
+  #   docker compose --profile preview up preview   then open http://localhost:4173
+  preview:
+    image: node:22-alpine
+    profiles: ["preview"]
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - preview_node_modules:/app/node_modules
+    environment:
+      VITE_PROXY_TARGET: http://api:5000
+    command: sh -c "npm ci && npm run build && npm run preview -- --host 0.0.0.0"
+    ports:
+      - "4173:4173"
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   web_node_modules:
+  preview_node_modules:

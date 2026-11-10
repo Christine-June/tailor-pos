@@ -59,11 +59,15 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Conflict handling when two people move the same card; board refreshes every 30 s
 - [x] Tailors see job cards with measurements but no prices
 
-## Phase 6: Offline mode
-- [ ] Redux Toolkit store with persistence (IndexedDB)
-- [ ] Outbox queue: sales and payments made offline sync later
-- [ ] Offline banner and "needs attention" list for failed syncs
-- [ ] Installable app (PWA) that opens without internet
+## Phase 6: Offline mode ✅
+- [x] Redux Toolkit store with persistence (IndexedDB; moves the old localStorage session over)
+- [x] Outbox queue: sales, balance payments and new customers made offline sync later, oldest first
+- [x] Never recorded twice: each queued item carries its own id; retries are harmless
+- [x] Catalogue, customers and workshop board saved on the device for offline use
+- [x] Offline banner (also when Wi-Fi is up but the server isn't), sync status in the header
+- [x] Sync page: waiting, needs attention (fix the M-Pesa code and retry, or discard), recently synced
+- [x] Offline receipts with a reference until the order number arrives
+- [x] Installable app (PWA) that opens without internet: manifest, icons, service worker
 
 ## Phase 7: Stock, reports, settings
 - [ ] Stock page: add items, adjust, movement history

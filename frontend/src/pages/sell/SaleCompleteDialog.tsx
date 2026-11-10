@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { CheckCircle2, Loader2, Printer, ReceiptText } from "lucide-react"
+import { CheckCircle2, CloudOff, Loader2, Printer, ReceiptText } from "lucide-react"
 
 import { PrintableReceipt, Receipt } from "@/components/Receipt"
 import { Button } from "@/components/ui/button"
@@ -7,11 +7,24 @@ import { Dialog } from "@/components/ui/dialog"
 import { api, errorMessage } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import { cents, formatMoney } from "@/lib/money"
+import { offlineRef } from "@/lib/offline"
 import type { Order, Shop } from "@/lib/types"
 
 type PrintState = { status: "idle" | "sending" } | { status: "done"; message: string } | { status: "error"; message: string }
 
-export function SaleCompleteDialog({ order, change, shop, onClose }: { order: Order | null; change: bigint; shop: Shop; onClose: () => void }) {
+export function SaleCompleteDialog({
+  order,
+  change,
+  offline = false,
+  shop,
+  onClose,
+}: {
+  order: Order | null
+  change: bigint
+  offline?: boolean
+  shop: Shop
+  onClose: () => void
+}) {
   const [print, setPrint] = useState<PrintState>({ status: "idle" })
   const [showReceipt, setShowReceipt] = useState(false)
   if (!order) return null
@@ -34,7 +47,7 @@ export function SaleCompleteDialog({ order, change, shop, onClose }: { order: Or
     <Dialog
       open
       onClose={onClose}
-      title={bespoke ? `Order #${order.number} confirmed` : `Sale #${order.number} complete`}
+      title={offline ? (bespoke ? "Order saved on this device" : "Sale saved on this device") : bespoke ? `Order #${order.number} confirmed` : `Sale #${order.number} complete`}
       description={order.customer ? order.customer.full_name : "Walk-in customer"}
       footer={
         <Button size="lg" className="w-full" onClick={onClose} autoFocus>
@@ -44,6 +57,14 @@ export function SaleCompleteDialog({ order, change, shop, onClose }: { order: Or
     >
       <PrintableReceipt order={order} shop={shop} />
       <div className="space-y-4">
+        {offline && (
+          <p className="flex gap-2 rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+            <CloudOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              No internet, so this is saved on this device (ref {offlineRef(order.id)}). It will sync by itself when the connection is back, and gets its order number then.
+            </span>
+          </p>
+        )}
         <div className="flex flex-col items-center gap-1 py-2 text-center">
           <CheckCircle2 className="size-10 text-success" aria-hidden="true" />
           {change > 0n ? (
@@ -79,7 +100,7 @@ export function SaleCompleteDialog({ order, change, shop, onClose }: { order: Or
           <Button variant="outline" onClick={() => window.print()}>
             <ReceiptText /> Print receipt
           </Button>
-          {shop.printer_mode !== "none" ? (
+          {shop.printer_mode !== "none" && !offline ? (
             <Button variant="outline" onClick={() => void thermalPrint()} disabled={print.status === "sending"}>
               {print.status === "sending" ? <Loader2 className="animate-spin" /> : <Printer />} Thermal printer
             </Button>
@@ -94,7 +115,7 @@ export function SaleCompleteDialog({ order, change, shop, onClose }: { order: Or
             {print.message}
           </p>
         )}
-        {shop.printer_mode !== "none" && (
+        {shop.printer_mode !== "none" && !offline && (
           <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => setShowReceipt((v) => !v)}>
             {showReceipt ? "Hide receipt" : "View receipt"}
           </button>

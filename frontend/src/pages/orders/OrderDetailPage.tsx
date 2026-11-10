@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowLeft, Ban, CalendarClock, Pencil, Printer, ReceiptText, RefreshCw, Ruler, Undo2, UserRound, Wallet } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 
@@ -15,6 +15,7 @@ import { cents, formatMoney } from "@/lib/money"
 import type { JobCard, OrderDetail, OrderStatus, Role, Shop, StaffMember } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { allowedMoves, dueState, moveLabel } from "@/lib/workflow"
+import { useAppSelector } from "@/store"
 import { CancelDialog, EditOrderDialog, MoveDialog, RefundDialog, TakePaymentDialog } from "./OrderDialogs"
 
 type DialogName = "pay" | "refund" | "cancel" | "edit" | "move" | null
@@ -57,6 +58,18 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
       })
     return () => controller.abort()
   }, [orderId, reloadKey])
+
+  // Payments for this order still waiting on this device; reload once they reach the server.
+  const outbox = useAppSelector((s) => s.outbox.entries)
+  const pendingHere = outbox.filter((e) => e.orderId === orderId)
+  const pendingCount = useRef(pendingHere.length)
+  useEffect(() => {
+    if (pendingHere.length < pendingCount.current) {
+      setReloadKey((k) => k + 1)
+      setFlash("Payments saved on this device have reached the server.")
+    }
+    pendingCount.current = pendingHere.length
+  }, [pendingHere.length])
 
   useEffect(() => {
     api
@@ -289,6 +302,21 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
           {/* Payments */}
           <section className="overflow-hidden rounded-xl border bg-card">
             <h3 className="border-b px-4 py-3 font-semibold">Payments</h3>
+            {pendingHere.length > 0 && (
+              <ul className="divide-y border-b bg-warning/10 text-sm">
+                {pendingHere.map((e) => (
+                  <li key={e.id} className="flex justify-between gap-2 px-4 py-2.5">
+                    <span>
+                      {METHOD_LABEL[String(e.body.method)] ?? "Payment"}
+                      <span className="block text-xs text-accent-foreground">
+                        {e.state === "failed" ? `Needs attention: ${e.error?.message}` : "Saved on this device, waiting to sync"}
+                      </span>
+                    </span>
+                    <span className="tabular-nums">{formatMoney(String(e.body.amount))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {order.payments.length === 0 ? (
               <p className="px-4 py-3 text-sm text-muted-foreground">Nothing paid yet.</p>
             ) : (

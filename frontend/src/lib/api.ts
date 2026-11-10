@@ -22,6 +22,14 @@ export class ApiError extends Error {
   get isNetwork() {
     return this.status === 0
   }
+
+  /**
+   * The server couldn't be reached or a gateway in front of it was down, so the request may not
+   * have been processed. Safe to retry later because every write carries a client-generated id.
+   */
+  get isRetryable() {
+    return this.status === 0 || this.status === 502 || this.status === 503 || this.status === 504
+  }
 }
 
 export interface SessionHooks {
@@ -36,6 +44,26 @@ const TIMEOUT_MS = 20_000
 
 let hooks: SessionHooks | null = null
 let refreshing: Promise<string | null> | null = null
+
+// Whether the server answered the last request. The browser's own online flag only knows about
+// the local network; a shop's Wi-Fi can be up while the internet behind it is down.
+let reachable = true
+const reachabilityListeners = new Set<(reachable: boolean) => void>()
+
+function setReachable(value: boolean) {
+  if (value === reachable) return
+  reachable = value
+  reachabilityListeners.forEach((l) => l(value))
+}
+export function isServerReachable() {
+  return reachable
+}
+export function onReachability(listener: (reachable: boolean) => void) {
+  reachabilityListeners.add(listener)
+  return () => {
+    reachabilityListeners.delete(listener)
+  }
+}
 
 export function configureApi(sessionHooks: SessionHooks) {
   hooks = sessionHooks
@@ -72,14 +100,18 @@ async function send(method: Method, path: string, token: string | null, opts: Re
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
   try {
-    return await fetch(BASE + path, {
+    const res = await fetch(BASE + path, {
       method,
       headers,
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
       signal,
     })
+    // A gateway error means the server behind it is down, which staff experience as offline.
+    setReachable(![502, 503, 504].includes(res.status))
+    return res
   } catch (err) {
     if (opts.signal?.aborted) throw err
+    setReachable(false)
     throw new ApiError(0, "network", "Can't reach the server. Check the internet connection.")
   }
 }
@@ -134,6 +166,10 @@ export const api = {
   get: <T>(path: string, opts?: Omit<RequestOptions, "body">) => request<T>("GET", path, opts),
   post: <T>(path: string, body?: unknown, opts?: RequestOptions) => request<T>("POST", path, { ...opts, body: body ?? {} }),
   patch: <T>(path: string, body: unknown, opts?: RequestOptions) => request<T>("PATCH", path, { ...opts, body }),
+}
+
+export function isRetryable(err: unknown): boolean {
+  return err instanceof ApiError && err.isRetryable
 }
 
 /** A message safe to show to staff for any thrown value. */

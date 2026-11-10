@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 
 import { formatDate, formatDateTime, formatPhone, METHOD_LABEL, trimZeros } from "@/lib/format"
 import { cents, formatMoney } from "@/lib/money"
+import { offlineRef } from "@/lib/offline"
 import type { Order, Shop } from "@/lib/types"
 
 /**
@@ -23,8 +24,10 @@ export function Receipt({ order, shop }: { order: Order; shop: Shop }) {
       </div>
       <div className="mt-3 flex justify-between">
         <span>{order.kind === "bespoke" ? "Order" : "Receipt"}</span>
-        <span>#{order.number}</span>
+        {/* An offline sale has no number until it syncs; the reference ties the two together. */}
+        <span>{order.number ? `#${order.number}` : `Ref ${offlineRef(order.id)}`}</span>
       </div>
+      {!order.number && <p>Saved offline; order number to follow</p>}
       <p>{formatDateTime(order.created_at, shop.timezone)}</p>
       {order.customer && (
         <>

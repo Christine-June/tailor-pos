@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ApiError, api, errorMessage } from "@/lib/api"
+import { ApiError, api, errorMessage, isRetryable } from "@/lib/api"
+import { knownOffline, paymentEntry } from "@/lib/offline"
+import { useAppDispatch, useAppSelector } from "@/store"
+import { enqueued } from "@/store/outboxSlice"
 import { MPESA_RE } from "@/lib/checkout"
 import { formatDateTime, METHOD_LABEL, STATUS_LABEL, todayIn } from "@/lib/format"
 import { cents, formatMoney, parseMoney, toApiMoney } from "@/lib/money"
@@ -27,11 +30,14 @@ interface BaseProps {
 function useSubmit(onDone: BaseProps["onDone"]) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
-  async function run(fn: () => Promise<OrderDetail>, message?: string) {
+  /** fn may return the order with its own message, e.g. "saved offline" instead of "received". */
+  async function run(fn: () => Promise<OrderDetail | { order: OrderDetail; message: string }>, message?: string) {
     setBusy(true)
     setError(null)
     try {
-      onDone(await fn(), message)
+      const result = await fn()
+      if ("order" in result && "message" in result) onDone(result.order, result.message)
+      else onDone(result as OrderDetail, message)
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(0, "error", errorMessage(err)))
     } finally {
@@ -72,7 +78,6 @@ function MethodPicker({ value, onChange }: { value: PaymentMethod; onChange: (m:
 
 /** Collect the balance (or part of it) on an existing order. */
 export function TakePaymentDialog({ open, order, role, onClose, onDone }: BaseProps) {
-  const balance = cents(order.balance)
   const [method, setMethod] = useState<PaymentMethod>("cash")
   const [amount, setAmount] = useState("")
   const [received, setReceived] = useState("")
@@ -80,6 +85,14 @@ export function TakePaymentDialog({ open, order, role, onClose, onDone }: BasePr
   const [allowDuplicate, setAllowDuplicate] = useState(false)
   const [paymentId, setPaymentId] = useState(uuid)
   const { busy, error, setError, run } = useSubmit(onDone)
+  const dispatch = useAppDispatch()
+  const shop = useAppSelector((s) => s.auth.shop)!
+  const user = useAppSelector((s) => s.auth.user)!
+  // Payments already waiting on this device count against the balance too.
+  const outbox = useAppSelector((s) => s.outbox.entries)
+  const queued = outbox.filter((e) => e.kind === "payment" && e.orderId === order.id)
+  const queuedTotal = queued.reduce((sum, e) => sum + cents(String(e.body.amount)), 0n)
+  const balance = cents(order.balance) - queuedTotal
 
   useEffect(() => {
     if (!open) return
@@ -109,18 +122,29 @@ export function TakePaymentDialog({ open, order, role, onClose, onDone }: BasePr
 
   function submit() {
     if (problem) return
-    void run(
-      () =>
-        api.post<OrderDetail>(`/orders/${order.id}/payments`, {
-          id: paymentId,
-          method,
-          amount: toApiMoney(value!),
-          tendered: method === "cash" && cash !== null ? toApiMoney(cash) : null,
-          reference: method === "cash" ? null : ref || null,
-          allow_duplicate_reference: allowDuplicate,
-        }),
-      `${formatMoney(value!)} received${change > 0n ? `. Give ${formatMoney(change)} change.` : "."}`,
-    )
+    const body = {
+      id: paymentId,
+      method,
+      amount: toApiMoney(value!),
+      tendered: method === "cash" && cash !== null ? toApiMoney(cash) : null,
+      reference: method === "cash" ? null : ref || null,
+      allow_duplicate_reference: allowDuplicate,
+    }
+    const changeText = change > 0n ? ` Give ${formatMoney(change)} change.` : ""
+    // Offline: keep the payment on this device; the same id makes a later resend harmless.
+    const queue = () => {
+      dispatch(enqueued(paymentEntry(order.id, order.number, body, shop.id, user.name)))
+      return { order, message: `No internet: ${formatMoney(value!)} is saved on this device and will be added when the connection is back.${changeText}` }
+    }
+    void run(async () => {
+      if (knownOffline()) return queue()
+      try {
+        return await api.post<OrderDetail>(`/orders/${order.id}/payments`, body)
+      } catch (err) {
+        if (isRetryable(err)) return queue()
+        throw err
+      }
+    }, `${formatMoney(value!)} received.${changeText}`)
   }
 
   return (

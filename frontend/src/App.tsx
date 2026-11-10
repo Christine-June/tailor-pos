@@ -10,6 +10,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage"
 import { CustomersPage } from "@/pages/customers/CustomersPage"
 import { OrdersPage } from "@/pages/orders/OrdersPage"
 import { SellPage } from "@/pages/sell/SellPage"
+import { SyncPage } from "@/pages/SyncPage"
 import { WorkshopPage } from "@/pages/workshop/WorkshopPage"
 
 // Screens built so far; the rest show which phase builds them.
@@ -42,6 +43,8 @@ export default function App() {
               }
             />
           ))}
+          {/* Every role can see what this device still has to send. */}
+          <Route path="sync" element={<SyncPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

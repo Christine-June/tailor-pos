@@ -6,10 +6,14 @@ import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDebounced } from "@/hooks/useDebounced"
-import { ApiError, api, errorMessage } from "@/lib/api"
-import { formatPhone } from "@/lib/format"
+import { ApiError, api, errorMessage, isRetryable } from "@/lib/api"
+import { formatPhone, normalizeKenyanPhone, searchCustomers } from "@/lib/format"
+import { customerEntry, knownOffline, localCustomer } from "@/lib/offline"
 import type { Customer, Page } from "@/lib/types"
 import { uuid } from "@/lib/uuid"
+import { useAppDispatch, useAppSelector } from "@/store"
+import { customerAdded } from "@/store/cacheSlice"
+import { enqueued } from "@/store/outboxSlice"
 
 /** Search existing customers or add one in a few seconds, without leaving the sale. */
 export function CustomerDialog({ open, onClose, onChoose }: { open: boolean; onClose: () => void; onChoose: (customer: Customer) => void }) {
@@ -35,17 +39,27 @@ function CustomerSearch({ onChoose, onNew }: { onChoose: (c: Customer) => void; 
   const term = useDebounced(query.trim(), 250)
   const [results, setResults] = useState<Customer[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [offline, setOffline] = useState(false)
+  const cached = useAppSelector((s) => s.cache.customers)
 
   useEffect(() => {
     const controller = new AbortController()
     setError(null)
     api
       .get<Page<Customer>>(`/customers?limit=20&q=${encodeURIComponent(term)}`, { signal: controller.signal })
-      .then((page) => setResults(page.items))
+      .then((page) => {
+        setResults(page.items)
+        setOffline(false)
+      })
       .catch((err) => {
-        if (!controller.signal.aborted) setError(errorMessage(err))
+        if (controller.signal.aborted) return
+        if (isRetryable(err) && cached) {
+          setResults(searchCustomers(cached.items, term))
+          setOffline(true)
+        } else setError(errorMessage(err))
       })
     return () => controller.abort()
+    // The cached list is a fallback only; it shouldn't re-run the search.
   }, [term])
 
   return (
@@ -57,6 +71,7 @@ function CustomerSearch({ onChoose, onNew }: { onChoose: (c: Customer) => void; 
       <Button variant="outline" className="w-full justify-start" onClick={onNew}>
         <UserPlus /> New customer
       </Button>
+      {offline && <p className="text-xs text-accent-foreground">Offline: searching customers saved on this device.</p>}
       {error ? (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
       ) : results === null ? (
@@ -95,10 +110,30 @@ function QuickAdd({ onCreated, onBack }: { onCreated: (c: Customer) => void; onB
   const [duplicate, setDuplicate] = useState<Customer | null>(null)
   // One id per form, so a double tap or a retry after a timeout creates one customer.
   const [id] = useState(uuid)
+  const dispatch = useAppDispatch()
+  const shop = useAppSelector((s) => s.auth.shop)!
+  const user = useAppSelector((s) => s.auth.user)!
+
+  function saveOffline() {
+    const normalized = phone.trim() ? normalizeKenyanPhone(phone) : null
+    if (phone.trim() && !normalized) {
+      setError("Enter a valid phone number, e.g. 0712 345 678")
+      setBusy(false)
+      return
+    }
+    const customer = localCustomer(id, first.trim(), last.trim(), normalized)
+    dispatch(enqueued(customerEntry(customer, shop.id, user.name)))
+    dispatch(customerAdded(customer))
+    onCreated(customer)
+  }
 
   async function save(allowDuplicate: boolean) {
     setBusy(true)
     setError(null)
+    if (knownOffline()) {
+      saveOffline()
+      return
+    }
     try {
       const customer = await api.post<Customer>("/customers", {
         id,
@@ -111,6 +146,9 @@ function QuickAdd({ onCreated, onBack }: { onCreated: (c: Customer) => void; onB
     } catch (err) {
       if (err instanceof ApiError && err.code === "duplicate_phone") {
         setDuplicate((err.details as { existing: Customer }).existing)
+      } else if (isRetryable(err)) {
+        saveOffline()
+        return
       } else {
         setError(errorMessage(err))
       }

@@ -38,7 +38,7 @@ tailor-pos/
 │   │   ├── components/      layout, route guards, receipt, ui/ (shadcn)
 │   │   ├── lib/             api client, money and checkout rules, types
 │   │   ├── pages/           login, sell/, customers/, orders/, workshop/ (board)
-│   │   ├── store/           Redux Toolkit (session, cart)
+│   │   ├── store/           Redux Toolkit (session, cart, outbox, offline caches, sync)
 │   │   └── App.tsx          routes
 │   └── vite.config.ts
 ├── docker-compose.yml       local development stack
@@ -64,6 +64,16 @@ Open http://localhost:5173 and sign in with a demo account (password `demo-passw
 
 Stop with `Ctrl+C`, or `docker compose down`. Add `-v` to also wipe the database.
 
+### Try the installable, offline-ready build
+
+The dev server above skips the service worker so code changes show instantly. To try the real thing (install it, then use it with the API stopped):
+
+```bash
+docker compose --profile preview up preview
+```
+
+Open http://localhost:4173, sign in, and visit Sell and Workshop once so the device saves its copies. Then stop the API with `docker compose stop api`: sales and payments are saved on the device, and they sync by themselves after `docker compose start api`. The **Sync** page (from the header badge) shows what is waiting and anything that needs attention.
+
 ## Run the tests
 
 ```bash
@@ -80,5 +90,5 @@ docker compose run --rm --no-deps web sh -c "npm ci && npm test"
 - **Payments are a ledger.** Each tender (cash, M-Pesa, card) is its own row; the amount paid is always summed from it. Refunds are negative rows. Rows can't be edited or deleted, which the database enforces.
 - **Measurements are append-only.** A new fitting is a new record, so an order always points at the exact numbers it was cut from.
 - **Production stage and payment are separate.** An order can be at Stitching and part-paid at the same time. It can't be handed over with a balance unless the owner allows credit.
-- **Offline-safe.** The client generates IDs, so a sale retried after a dropped connection is recorded once.
+- **Offline-safe.** The client generates IDs, so a sale retried after a dropped connection is recorded once. Sales made with no internet wait in an outbox in IndexedDB and sync oldest first; anything the server refuses goes to a "needs attention" list instead of being lost.
 - **Cloud printing uses an agent.** A cloud server can't reach a printer on a shop's Wi-Fi, so `print_agent/agent.py` runs on a shop PC and collects jobs.

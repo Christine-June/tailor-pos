@@ -22,6 +22,33 @@ export function formatPhone(phone: string | null): string {
   return m ? `0${m[1]} ${m[2]} ${m[3]}` : phone
 }
 
+/**
+ * Kenyan numbers to +254…, exactly as the server stores them (schemas.normalize_phone), so a
+ * customer added offline matches the same person later. Returns null when the number is invalid.
+ */
+export function normalizeKenyanPhone(raw: string): string | null {
+  let phone = raw.replace(/[\s\-().]/g, "")
+  if (/^0[17]\d{8}$/.test(phone)) phone = "+254" + phone.slice(1)
+  else if (/^254[17]\d{8}$/.test(phone)) phone = "+" + phone
+  else if (/^[17]\d{8}$/.test(phone)) phone = "+254" + phone
+  return /^\+?\d{7,15}$/.test(phone) ? phone : null
+}
+
+/** The same search the server does, over the customer list saved on this device. */
+export function searchCustomers<T extends { first_name: string; last_name: string; full_name: string; phone: string | null; email: string | null; archived?: boolean }>(
+  customers: T[],
+  term: string,
+  limit = 20,
+): T[] {
+  const text = term.trim().toLowerCase()
+  const digits = text.replace(/\D/g, "").replace(/^0+/, "")
+  return customers
+    .filter((c) => !c.archived)
+    .filter((c) => !text || c.full_name.toLowerCase().includes(text) || c.email?.toLowerCase().includes(text) || (digits !== "" && c.phone?.includes(digits)))
+    .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name))
+    .slice(0, limit)
+}
+
 /** "3.500" -> "3.5", "16.00" -> "16"; whole numbers without a decimal point are left alone. */
 export function trimZeros(value: string): string {
   return value.includes(".") ? value.replace(/\.?0+$/, "") : value

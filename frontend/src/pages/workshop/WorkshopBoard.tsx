@@ -9,8 +9,10 @@ import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useMeasurementFields } from "@/hooks/useMeasurementFields"
 import { usePrint } from "@/hooks/usePrint"
-import { ApiError, api, errorMessage } from "@/lib/api"
-import { formatDate, STATUS_LABEL, trimZeros } from "@/lib/format"
+import { ApiError, api, errorMessage, isRetryable } from "@/lib/api"
+import { formatDate, formatDateTime, STATUS_LABEL, trimZeros } from "@/lib/format"
+import { useAppDispatch, useAppSelector } from "@/store"
+import { boardCached } from "@/store/cacheSlice"
 import { groupValues } from "@/lib/measurements"
 import type { JobCard, OrderStatus, Role, Shop } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -47,6 +49,11 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
   const justDragged = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const dispatch = useAppDispatch()
+  const [staleSince, setStaleSince] = useState<string | null>(null)
+  const board = useAppSelector((s) => (s.cache.board?.shopId === shop.id ? s.cache.board : null))
+  const cachedBoard = useRef(board)
+  cachedBoard.current = board
 
   const showToast = useCallback((text: string, tone: "ok" | "warn" = "ok") => {
     setToast({ text, tone })
@@ -59,6 +66,8 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
       const data = await api.get<{ items: JobCard[]; today: string }>("/workshop/board", { signal })
       setToday(data.today)
       setError(null)
+      setStaleSince(null)
+      dispatch(boardCached({ items: data.items, today: data.today, shopId: shop.id }))
       // A card mid-move keeps its local position until the server answers.
       setCards((current) => {
         if (!current || pending.current.size === 0) return data.items
@@ -66,9 +75,16 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
         return data.items.map((c) => (pending.current.has(c.id) ? (local.get(c.id) ?? c) : c))
       })
     } catch (err) {
-      if (!signal?.aborted) setError(errorMessage(err))
+      if (signal?.aborted) return
+      const cached = cachedBoard.current
+      // Offline: show the last board saved on this device instead of an error.
+      if (isRetryable(err) && cached) {
+        setCards((current) => current ?? cached.items)
+        setToday((t) => t || cached.today)
+        setStaleSince(cached.savedAt)
+      } else setError(errorMessage(err))
     }
-  }, [])
+  }, [dispatch, shop.id])
 
   // Picks up moves made by other people: every 30 s while visible, and when the tab regains focus.
   useEffect(() => {
@@ -226,7 +242,13 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
           <RefreshCw /> Refresh
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">Drag a card to the next stage, or use its “Move to” menu. On a touchscreen, drag by the ⋮⋮ grip.</p>
+      {staleSince ? (
+        <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+          Offline: this is the board as it was at {formatDateTime(staleSince, shop.timezone)}. Moving cards needs the internet.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Drag a card to the next stage, or use its “Move to” menu. On a touchscreen, drag by the ⋮⋮ grip.</p>
+      )}
 
       {cards === null ? (
         <div className="grid grid-flow-col gap-3 overflow-hidden" aria-busy="true">

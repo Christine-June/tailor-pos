@@ -3,10 +3,12 @@ import { ChevronUp, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
-import { api, errorMessage } from "@/lib/api"
+import { api, errorMessage, isRetryable } from "@/lib/api"
 import { cartTotals } from "@/lib/checkout"
+import { formatDateTime } from "@/lib/format"
 import { formatMoney } from "@/lib/money"
 import type { Customer, InventoryItem, Order, Page } from "@/lib/types"
+import { catalogCached, customersCached } from "@/store/cacheSlice"
 import { cartCleared, customerChosen, customLineAdded, itemAdded } from "@/store/cartSlice"
 import { useAppDispatch, useAppSelector } from "@/store"
 import { CartPanel } from "./CartPanel"
@@ -30,25 +32,46 @@ export function SellPage() {
   const [customerOpen, setCustomerOpen] = useState(false)
   const [paying, setPaying] = useState(false)
   const [mobileCart, setMobileCart] = useState(false)
-  const [completed, setCompleted] = useState<{ order: Order; change: bigint } | null>(null)
+  const [completed, setCompleted] = useState<{ order: Order; change: bigint; offline: boolean } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const loadItems = useCallback((signal?: AbortSignal) => {
-    setLoadError(null)
-    api
-      .get<Page<InventoryItem>>("/inventory?limit=1000", { signal })
-      .then((page) => setItems(page.items))
-      .catch((err) => {
-        if (!signal?.aborted) setLoadError(errorMessage(err))
-      })
-  }, [])
+  const cachedCatalog = useAppSelector((s) => (s.cache.catalog?.shopId === shop.id ? s.cache.catalog : null))
+  const [fromCache, setFromCache] = useState<string | null>(null)
+
+  const loadItems = useCallback(
+    (signal?: AbortSignal) => {
+      setLoadError(null)
+      api
+        .get<Page<InventoryItem>>("/inventory?limit=1000", { signal })
+        .then((page) => {
+          setItems(page.items)
+          setFromCache(null)
+          dispatch(catalogCached({ items: page.items, shopId: shop.id }))
+        })
+        .catch((err) => {
+          if (signal?.aborted) return
+          // Offline: sell from the copy saved on this device.
+          if (isRetryable(err) && cachedCatalog) {
+            setItems(cachedCatalog.items)
+            setFromCache(cachedCatalog.savedAt)
+          } else setLoadError(errorMessage(err))
+        })
+    },
+    // The cached copy is only a fallback; reloading when it changes would loop.
+    [dispatch, shop.id],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
     loadItems(controller.signal)
+    // Keep a copy of the customer list so a sale can still be linked to a customer offline.
+    api
+      .get<Page<Customer>>("/customers?limit=2000", { signal: controller.signal })
+      .then((page) => dispatch(customersCached({ items: page.items, shopId: shop.id })))
+      .catch(() => undefined)
     return () => controller.abort()
-  }, [loadItems])
+  }, [loadItems, dispatch, shop.id])
 
   useEffect(() => () => clearTimeout(toastTimer.current), [])
 
@@ -72,12 +95,12 @@ export function SellPage() {
     setCustomerOpen(false)
   }
 
-  function paid(order: Order, change: bigint) {
+  function paid(order: Order, change: bigint, offline: boolean) {
     setPaying(false)
     setMobileCart(false)
-    setCompleted({ order, change })
+    setCompleted({ order, change, offline })
     dispatch(cartCleared())
-    loadItems() // stock levels changed
+    if (!offline) loadItems() // stock levels changed
   }
 
   const totals = cartTotals(cart, shop)
@@ -95,6 +118,11 @@ export function SellPage() {
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="pb-24 lg:pb-0">
+        {fromCache && (
+          <p className="mb-3 rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+            Offline: showing items and prices saved on this device at {formatDateTime(fromCache, shop.timezone)}. Stock counts may be out of date.
+          </p>
+        )}
         <ItemGrid items={items} error={loadError} onRetry={() => loadItems()} onPick={pick} onCustom={() => setCustomOpen(true)} />
       </div>
 
@@ -154,8 +182,10 @@ export function SellPage() {
         }}
       />
       <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onChoose={chooseCustomer} />
-      <PaymentDialog open={paying} cart={cart} totals={totals} role={user.role} onClose={() => setPaying(false)} onPaid={paid} />
-      {completed && <SaleCompleteDialog order={completed.order} change={completed.change} shop={shop} onClose={() => setCompleted(null)} />}
+      <PaymentDialog open={paying} cart={cart} totals={totals} role={user.role} shop={shop} user={user} onClose={() => setPaying(false)} onPaid={paid} />
+      {completed && (
+        <SaleCompleteDialog order={completed.order} change={completed.change} offline={completed.offline} shop={shop} onClose={() => setCompleted(null)} />
+      )}
     </div>
   )
 }

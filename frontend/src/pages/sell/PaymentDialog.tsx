@@ -4,12 +4,15 @@ import { Banknote, CreditCard, Loader2, Smartphone, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { ApiError, api, errorMessage } from "@/lib/api"
-import { buildOrderPayload, chargeBlocker, settle, type Cart, type Tender, type TenderMethod, type Totals } from "@/lib/checkout"
+import { ApiError, api, errorMessage, isRetryable } from "@/lib/api"
+import { buildOrderPayload, chargeBlocker, settle, type Cart, type OrderPayload, type Tender, type TenderMethod, type Totals } from "@/lib/checkout"
 import { formatMoney, parseMoney, toApiMoney } from "@/lib/money"
-import type { Order, Role } from "@/lib/types"
+import { knownOffline, localOrderPreview, orderEntry } from "@/lib/offline"
+import type { Order, Role, Shop, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { uuid } from "@/lib/uuid"
+import { useAppDispatch } from "@/store"
+import { enqueued } from "@/store/outboxSlice"
 
 const METHODS: { method: TenderMethod; label: string; icon: typeof Banknote }[] = [
   { method: "cash", label: "Cash", icon: Banknote },
@@ -36,10 +39,14 @@ interface PaymentDialogProps {
   totals: Totals
   role: Role
   onClose: () => void
-  onPaid: (order: Order, change: bigint) => void
+  shop: Shop
+  user: User
+  /** offline: the sale is saved on this device and will sync later. */
+  onPaid: (order: Order, change: bigint, offline: boolean) => void
 }
 
-export function PaymentDialog({ open, cart, totals, role, onClose, onPaid }: PaymentDialogProps) {
+export function PaymentDialog({ open, cart, totals, role, shop, user, onClose, onPaid }: PaymentDialogProps) {
+  const dispatch = useAppDispatch()
   const [tenders, setTenders] = useState<Tender[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -72,14 +79,31 @@ export function PaymentDialog({ open, cart, totals, role, onClose, onPaid }: Pay
     return totals.total - others.paid
   }
 
+  function saveOffline(payload: OrderPayload) {
+    dispatch(enqueued(orderEntry(payload, cart, totals, shop.id, user.name)))
+    onPaid(localOrderPreview(cart, settlement, totals, shop, user.name), settlement.change, true)
+  }
+
   async function charge() {
     if (blocker) return
     setBusy(true)
     setError(null)
+    const payload = buildOrderPayload(cart, settlement, allowDuplicate)
+    // No network at all: don't make the customer wait for a timeout.
+    if (knownOffline()) {
+      saveOffline(payload)
+      return
+    }
     try {
-      const order = await api.post<Order>("/orders", buildOrderPayload(cart, settlement, allowDuplicate))
-      onPaid(order, settlement.change)
+      const order = await api.post<Order>("/orders", payload)
+      onPaid(order, settlement.change, false)
     } catch (err) {
+      // Couldn't reach the server: keep the sale on this device and sync it later. If the request
+      // did get through, the same order id means the server keeps one copy.
+      if (isRetryable(err)) {
+        saveOffline(payload)
+        return
+      }
       setError(err instanceof ApiError ? err : new ApiError(0, "error", errorMessage(err)))
       setBusy(false)
     }
