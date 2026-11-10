@@ -1,0 +1,34 @@
+# Runs the backend test suite against a throwaway PostgreSQL:
+#   docker compose -f docker-compose.test.yml run --rm --build tests
+services:
+  test-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tailor
+      POSTGRES_PASSWORD: tailor
+      POSTGRES_DB: tailor_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tailor -d tailor_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  tests:
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: "true"
+    # Mounted so that generated migrations land in the source tree.
+    volumes:
+      - ./backend:/srv
+    environment:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://tailor:tailor@test-db:5432/tailor_test
+      TEST_DATABASE_URL: postgresql+psycopg://tailor:tailor@test-db:5432/tailor_test
+    depends_on:
+      test-db:
+        condition: service_healthy
+    user: root
+    command: pytest -q
