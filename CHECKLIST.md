@@ -25,11 +25,12 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Print agent for shop PCs (network or USB printer)
 - [x] 107 automated tests against real PostgreSQL
 
-## Phase 2: Frontend shell
-- [ ] Vite + React + TypeScript + Tailwind + shadcn/ui project
-- [ ] Login page, session refresh, role-based navigation
-- [ ] App layout (sidebar on desktop, bottom bar on tablet)
-- [ ] API client with error handling
+## Phase 2: Frontend shell ✅
+- [x] Vite + React + TypeScript + Tailwind + shadcn/ui project
+- [x] Login page, session refresh, role-based navigation
+- [x] App layout (sidebar on desktop, icon rail on tablet, menu drawer on phone)
+- [x] API client with error handling (14 frontend tests)
+- [x] `docker compose up` runs database + API with demo data + frontend
 
 ## Phase 3: Checkout (POS)
 - [ ] Item grid with search and categories

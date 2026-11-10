@@ -8,7 +8,7 @@ Progress is tracked in [CHECKLIST.md](CHECKLIST.md).
 
 | Layer | Technology |
 |---|---|
-| Frontend | React, Vite, TypeScript, Tailwind CSS, shadcn/ui (Phase 2) |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, shadcn/ui, React Router |
 | State and offline | Redux Toolkit, persisted outbox, PWA (Phase 6) |
 | Backend | Python 3.12, Flask, Flask-SQLAlchemy, Flask-Migrate, Pydantic |
 | Auth | JWT (Flask-JWT-Extended), roles: owner, cashier, tailor |
@@ -33,17 +33,45 @@ tailor-pos/
 │   ├── print_agent/         runs on a shop PC, forwards jobs to the printer
 │   ├── tests/               pytest suite (real PostgreSQL)
 │   └── run.py
-├── frontend/                (Phase 2)
+├── frontend/
+│   ├── src/
+│   │   ├── components/      layout, route guards, ui/ (shadcn)
+│   │   ├── lib/             api client, navigation rules, types
+│   │   ├── pages/           login and screens
+│   │   ├── store/           Redux Toolkit (session)
+│   │   └── App.tsx          routes
+│   └── vite.config.ts
+├── docker-compose.yml       local development stack
 ├── docker-compose.test.yml
 └── CHECKLIST.md
 ```
 
-## Run the tests
+## Run the app
 
-Requires Docker Desktop.
+Requires Docker Desktop. One command starts PostgreSQL, the API (with demo data) and the frontend:
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:5173 and sign in with a demo account (password `demo-password`):
+
+| Email | Role | Sees |
+|---|---|---|
+| owner@demo.test | Owner | Everything, including Settings |
+| cashier@demo.test | Cashier | Sell, orders, customers, workshop, stock, reports |
+| tailor@demo.test | Tailor | Customers and workshop only |
+
+Stop with `Ctrl+C`, or `docker compose down`. Add `-v` to also wipe the database.
+
+## Run the tests
 
 ```bash
 docker compose -f docker-compose.test.yml run --rm --build tests
+```
+
+```bash
+docker compose run --rm --no-deps web sh -c "npm ci && npm test"
 ```
 
 ## Key design decisions
