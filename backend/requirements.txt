@@ -9,4 +9,5 @@ psycopg[binary]==3.2.9
 pydantic==2.11.7
 gunicorn==23.0.0
 redis==6.2.0
+sentry-sdk[flask]==2.29.1
 tzdata==2025.2

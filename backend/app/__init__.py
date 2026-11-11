@@ -10,6 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .errors import register_error_handlers
 from .extensions import cors, db, jwt, limiter, migrate
+from .monitoring import init_monitoring
 
 
 def create_app(overrides: dict | None = None) -> Flask:
@@ -20,6 +21,11 @@ def create_app(overrides: dict | None = None) -> Flask:
     Config.validate(app.config)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    init_monitoring(app)
+    if app.config["APP_ENV"] == "production" and app.config["RATELIMIT_STORAGE_URI"].startswith("memory"):
+        logging.getLogger(__name__).warning(
+            "Login rate limits are per worker (memory://). Set RATELIMIT_STORAGE_URI=redis://... so they're shared."
+        )
 
     if app.config["TRUSTED_PROXIES"]:
         hops = app.config["TRUSTED_PROXIES"]

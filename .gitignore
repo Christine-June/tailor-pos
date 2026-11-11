@@ -4,6 +4,8 @@ __pycache__/
 venv/
 .venv/
 .env
+# Database backups hold customer data: keep them off GitHub.
+backups/
 node_modules/
 dist/
 .DS_Store

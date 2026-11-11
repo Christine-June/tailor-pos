@@ -3,8 +3,11 @@ import { createRoot } from "react-dom/client"
 import { Provider } from "react-redux"
 
 import App from "./App"
+import { installGlobalErrorReporting } from "./lib/report"
 import { initStore } from "./store"
 import "./index.css"
+
+installGlobalErrorReporting()
 
 // Load the saved session, cart and outbox from this device before the first render.
 void initStore().then((store) => {

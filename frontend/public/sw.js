@@ -5,17 +5,32 @@
  * - API calls are never cached here. The app keeps its own offline copies and outbox in IndexedDB,
  *   and a cached API answer could show stale balances as if they were current.
  */
-const VERSION = "v1"
-const SHELL = `tailorpos-shell-${VERSION}`
-const ASSETS = `tailorpos-assets-${VERSION}`
+// Replaced at build time with a hash of the built files (see vite.config.ts), so every release
+// installs fresh, stores all of its pages, and clears the previous release's files.
+const BUILD = "dev"
+const SHELL = `tailorpos-shell-${BUILD}`
+const ASSETS = `tailorpos-assets-${BUILD}`
 const PRECACHE = ["/", "/manifest.webmanifest", "/favicon.svg", "/icons/icon-192.png", "/icons/icon-512.png"]
 const NAV_TIMEOUT_MS = 4000
+
+/** Every page's code, listed by the build, so pages never opened online still work offline. */
+async function precacheAssets() {
+  try {
+    const res = await fetch("/precache.json", { cache: "no-store" })
+    if (!res.ok) return
+    const { files } = await res.json()
+    if (Array.isArray(files) && files.length) await (await caches.open(ASSETS)).addAll(files)
+  } catch {
+    // Dev builds have no list; pages are then cached as they are opened.
+  }
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL)
       .then((cache) => cache.addAll(PRECACHE))
+      .then(precacheAssets)
       .then(() => self.skipWaiting()),
   )
 })

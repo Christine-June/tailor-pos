@@ -77,13 +77,16 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Staff: add, change role, reset password, stop someone signing in (last owner protected)
 - [x] Printer: none / shop agent / direct, paper width, agent key with ready-to-run command, test page, recent jobs
 
-## Phase 8: Deploy
-- [ ] Split the frontend bundle so each page loads on demand
-- [ ] Production Docker Compose (Postgres, API, web, Redis)
-- [ ] Domain, HTTPS, environment secrets
-- [ ] Daily database backups and a tested restore
-- [ ] Error monitoring (e.g. Sentry)
-- [ ] Pilot in one real tailor shop
+## Phase 8: Deploy ✅ (built and tested locally; going live is your step)
+- [x] Frontend split so each page loads on demand; every page still stored for offline use
+- [x] Production Docker Compose: Caddy (HTTPS), Gunicorn API, PostgreSQL, Redis, backup job
+- [x] Security headers (no third-party scripts), secrets from `.env`, database never exposed
+- [x] Daily database backups, restore script, and an automated restore test (passed)
+- [x] Error monitoring with Sentry (optional), with customer data stripped; crash screen with Reload
+- [x] Open-source licence lists for the app and server, checked on every build
+- [x] DEPLOY.md (server, domain, backups, monitoring, updates, data protection) and PILOT.md
+- [ ] Your server and domain live with HTTPS (DEPLOY.md steps 1–5)
+- [ ] Pilot in one real tailor shop (PILOT.md)
 
 ## Later (needed before selling widely in Kenya)
 - [ ] KRA eTIMS invoice integration (tax compliance)

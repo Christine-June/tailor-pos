@@ -2,7 +2,7 @@
 
 A cloud point of sale and workshop manager for custom tailors and apparel designers: retail checkout, deposits and balances, customer measurement history, and job cards moving through the workshop.
 
-Progress is tracked in [CHECKLIST.md](CHECKLIST.md).
+Progress is tracked in [CHECKLIST.md](CHECKLIST.md). To put it on a server, follow [DEPLOY.md](DEPLOY.md); to roll it out in a shop, [PILOT.md](PILOT.md).
 
 ## Stack
 
@@ -14,7 +14,8 @@ Progress is tracked in [CHECKLIST.md](CHECKLIST.md).
 | Auth | JWT (Flask-JWT-Extended), roles: owner, cashier, tailor |
 | Database | PostgreSQL 16 |
 | Printing | ESC/POS over TCP 9100 or a local print agent |
-| Runtime | Docker, Gunicorn, Nginx |
+| Runtime | Docker, Gunicorn, Caddy (automatic HTTPS), Redis |
+| Operations | Daily pg_dump backups with a restore test, Sentry (optional) |
 
 ## Folder layout
 
@@ -41,7 +42,9 @@ tailor-pos/
 │   │   ├── store/           Redux Toolkit (session, cart, outbox, offline caches, sync)
 │   │   └── App.tsx          routes
 │   └── vite.config.ts
+├── deploy/                  backup, restore and restore-test scripts
 ├── docker-compose.yml       local development stack
+├── docker-compose.prod.yml  production (see DEPLOY.md)
 ├── docker-compose.test.yml
 └── CHECKLIST.md
 ```

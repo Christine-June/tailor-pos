@@ -9,6 +9,7 @@ def register_blueprints(app: Flask) -> None:
     from .printing import agent_bp, bp as printing
     from .reports import bp as reports
     from .settings import bp as settings
+    from ..monitoring import bp as client_errors
 
-    for blueprint in (auth, customers, inventory, orders, printing, agent_bp, reports, settings):
+    for blueprint in (auth, customers, inventory, orders, printing, agent_bp, reports, settings, client_errors):
         app.register_blueprint(blueprint)

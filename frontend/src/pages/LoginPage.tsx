@@ -124,6 +124,12 @@ export function LoginPage() {
               Demo: owner@demo.test, cashier@demo.test or tailor@demo.test, password <code>demo-password</code>
             </p>
           )}
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            Tailor POS {__APP_VERSION__} ·{" "}
+            <a href="/third-party-licenses.txt" target="_blank" rel="noopener" className="underline underline-offset-4 hover:text-foreground">
+              Open-source licences
+            </a>
+          </p>
         </div>
       </section>
     </div>

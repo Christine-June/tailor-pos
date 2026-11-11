@@ -47,6 +47,11 @@ class Config:
 
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
 
+    # Error monitoring. Empty means off. Never sends request bodies or user details (see monitoring.py).
+    SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+    SENTRY_TRACES_SAMPLE_RATE = float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0"))
+    RELEASE = os.environ.get("RELEASE", "dev")
+
     @classmethod
     def validate(cls, cfg) -> None:
         if cfg.get("APP_ENV") != "production":

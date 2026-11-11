@@ -1,59 +1,81 @@
-import type { ReactNode } from "react"
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react"
+import { Loader2 } from "lucide-react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { HomeRedirect, RequireAuth, RequireRole } from "@/components/RouteGuards"
 import { NAV } from "@/lib/nav"
-import { ComingSoonPage } from "@/pages/ComingSoonPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
-import { CustomersPage } from "@/pages/customers/CustomersPage"
-import { OrdersPage } from "@/pages/orders/OrdersPage"
-import { ReportsPage } from "@/pages/reports/ReportsPage"
-import { SellPage } from "@/pages/sell/SellPage"
-import { SettingsPage } from "@/pages/settings/SettingsPage"
-import { StockPage } from "@/pages/stock/StockPage"
-import { SyncPage } from "@/pages/SyncPage"
-import { WorkshopPage } from "@/pages/workshop/WorkshopPage"
 
-// Screens built so far; the rest show which phase builds them.
-const PAGES: Record<string, ReactNode> = {
-  "/sell": <SellPage />,
-  "/customers": <CustomersPage />,
-  "/orders": <OrdersPage />,
-  "/workshop": <WorkshopPage />,
-  "/stock": <StockPage />,
-  "/reports": <ReportsPage />,
-  "/settings": <SettingsPage />,
+// Each area loads when first opened, so a cashier's tablet doesn't download Settings to make a
+// sale. The service worker still stores every page ahead of time for offline use.
+const PAGES: Record<string, LazyExoticComponent<ComponentType>> = {
+  "/sell": lazy(() => import("@/pages/sell/SellPage").then((m) => ({ default: m.SellPage }))),
+  "/customers": lazy(() => import("@/pages/customers/CustomersPage").then((m) => ({ default: m.CustomersPage }))),
+  "/orders": lazy(() => import("@/pages/orders/OrdersPage").then((m) => ({ default: m.OrdersPage }))),
+  "/workshop": lazy(() => import("@/pages/workshop/WorkshopPage").then((m) => ({ default: m.WorkshopPage }))),
+  "/stock": lazy(() => import("@/pages/stock/StockPage").then((m) => ({ default: m.StockPage }))),
+  "/reports": lazy(() => import("@/pages/reports/ReportsPage").then((m) => ({ default: m.ReportsPage }))),
+  "/settings": lazy(() => import("@/pages/settings/SettingsPage").then((m) => ({ default: m.SettingsPage }))),
+}
+const SyncPage = lazy(() => import("@/pages/SyncPage").then((m) => ({ default: m.SyncPage })))
+
+function PageLoading() {
+  return (
+    <div className="flex justify-center py-16 text-muted-foreground" role="status" aria-label="Loading">
+      <Loader2 className="size-6 animate-spin" />
+    </div>
+  )
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          element={
-            <RequireAuth>
-              <AppLayout />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<HomeRedirect />} />
-          {NAV.map((item) => (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            element={
+              <RequireAuth>
+                <AppLayout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<HomeRedirect />} />
+            {NAV.map((item) => {
+              const Page = PAGES[item.to]!
+              return (
+                <Route
+                  key={item.to}
+                  path={item.to.slice(1) + "/*"}
+                  element={
+                    <RequireRole path={item.to}>
+                      {/* A crash on one page leaves the menu working, so staff can move on. */}
+                      <ErrorBoundary key={item.to} inline>
+                        <Suspense fallback={<PageLoading />}>
+                          <Page />
+                        </Suspense>
+                      </ErrorBoundary>
+                    </RequireRole>
+                  }
+                />
+              )
+            })}
+            {/* Every role can see what this device still has to send. */}
             <Route
-              key={item.to}
-              path={item.to.slice(1) + "/*"}
+              path="sync"
               element={
-                <RequireRole path={item.to}>{PAGES[item.to] ?? <ComingSoonPage item={item} />}</RequireRole>
+                <Suspense fallback={<PageLoading />}>
+                  <SyncPage />
+                </Suspense>
               }
             />
-          ))}
-          {/* Every role can see what this device still has to send. */}
-          <Route path="sync" element={<SyncPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

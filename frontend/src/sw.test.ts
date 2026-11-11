@@ -59,21 +59,42 @@ const navigate = (path: string) => {
 
 describe("service worker", () => {
   let online: boolean
-  const network = vi.fn(async (req: Request) => {
+  let precacheList: string[] | null
+  const network = vi.fn(async (req: Request | string) => {
     if (!online) throw new TypeError("Failed to fetch")
-    return new Response(`fresh ${new URL(req.url).pathname}`)
+    const path = new URL(typeof req === "string" ? req : req.url, "http://shop.test").pathname
+    if (path === "/precache.json") {
+      return precacheList ? new Response(JSON.stringify({ files: precacheList })) : new Response("not found", { status: 404 })
+    }
+    return new Response(`fresh ${path}`)
   })
 
   beforeEach(() => {
     online = true
+    precacheList = null
     network.mockClear()
   })
 
   it("precaches the app shell on install", async () => {
     const sw = loadWorker(network)
     await sw.dispatch("install")
-    const shell = await sw.caches.get("tailorpos-shell-v1")!.match("/")
+    const shell = await sw.caches.get("tailorpos-shell-dev")!.match("/")
     expect(await shell!.text()).toBe("precached /")
+  })
+
+  it("stores every page's code on install, so unopened pages work offline", async () => {
+    precacheList = ["/assets/SellPage-a1.js", "/assets/SettingsPage-b2.js"]
+    const sw = loadWorker(network)
+    await sw.dispatch("install")
+    online = false
+    const res = await sw.dispatch("fetch", new Request("http://shop.test/assets/SettingsPage-b2.js"))
+    expect(await res!.text()).toBe("precached /assets/SettingsPage-b2.js")
+  })
+
+  it("still installs when there is no precache list (dev build)", async () => {
+    const sw = loadWorker(network)
+    await sw.dispatch("install")
+    expect(sw.caches.has("tailorpos-shell-dev")).toBe(true)
   })
 
   it("opens any page offline from the saved shell", async () => {
