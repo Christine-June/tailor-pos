@@ -9,7 +9,10 @@ import { LoginPage } from "@/pages/LoginPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { CustomersPage } from "@/pages/customers/CustomersPage"
 import { OrdersPage } from "@/pages/orders/OrdersPage"
+import { ReportsPage } from "@/pages/reports/ReportsPage"
 import { SellPage } from "@/pages/sell/SellPage"
+import { SettingsPage } from "@/pages/settings/SettingsPage"
+import { StockPage } from "@/pages/stock/StockPage"
 import { SyncPage } from "@/pages/SyncPage"
 import { WorkshopPage } from "@/pages/workshop/WorkshopPage"
 
@@ -19,6 +22,9 @@ const PAGES: Record<string, ReactNode> = {
   "/customers": <CustomersPage />,
   "/orders": <OrdersPage />,
   "/workshop": <WorkshopPage />,
+  "/stock": <StockPage />,
+  "/reports": <ReportsPage />,
+  "/settings": <SettingsPage />,
 }
 
 export default function App() {

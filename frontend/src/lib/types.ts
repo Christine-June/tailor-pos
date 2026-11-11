@@ -45,6 +45,63 @@ export interface InventoryItem {
   reorder_level: string
   is_low: boolean
   archived: boolean
+  /** Owner only. */
+  cost_price?: string
+}
+
+export type MovementReason = "purchase" | "sale" | "order_cancelled" | "adjustment" | "stock_count" | "waste" | "return"
+
+export interface StockMovement {
+  id: string
+  item_id: string
+  order_id: string | null
+  reason: MovementReason
+  quantity_delta: string
+  balance_after: string
+  note: string | null
+  user: string | null
+  created_at: string
+}
+
+export interface DailyReport {
+  date: string
+  by_method: { method: PaymentMethod; received: string; refunded: string; net: string; count: number }[]
+  total_received: string
+  total_refunded: string
+  net_takings: string
+  orders_created: number
+  sales_value: string
+  payments: (Payment & { order_number: number })[]
+}
+
+export interface OrderBrief {
+  id: string
+  number: number
+  status: OrderStatus
+  customer_name: string
+  customer_phone: string | null
+  due_date: string | null
+  balance: string
+}
+
+export interface Overview {
+  today: string
+  outstanding_count: number
+  outstanding_total: string
+  overdue: OrderBrief[]
+  due_soon: OrderBrief[]
+  awaiting_collection: OrderBrief[]
+  low_stock: InventoryItem[]
+}
+
+export interface PrintJob {
+  id: string
+  order_id: string | null
+  document: string
+  status: "queued" | "claimed" | "done" | "failed"
+  attempts: number
+  error: string | null
+  created_at: string
 }
 
 export interface Customer {

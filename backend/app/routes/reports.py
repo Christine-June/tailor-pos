@@ -53,6 +53,15 @@ def daily():
             entry["refunded"] += -amount
             refunded += -amount
 
+    # Each tender, so the cashier can tick M-Pesa codes off against the M-Pesa statement.
+    payments = db.session.execute(
+        select(Payment, Order.number)
+        .join(Order, Order.id == Payment.order_id)
+        .where(Payment.shop_id == shop.id, Payment.created_at >= start, Payment.created_at < end)
+        .order_by(Payment.created_at)
+        .limit(1000)
+    ).all()
+
     orders_created, sales_value = db.session.execute(
         select(func.count(), func.coalesce(func.sum(Order.total), 0)).where(
             Order.shop_id == shop.id, Order.created_at >= start, Order.created_at < end,
@@ -71,6 +80,35 @@ def daily():
         "net_takings": money(received - refunded),
         "orders_created": orders_created,
         "sales_value": money(sales_value),
+        "payments": [{**p.to_dict(), "order_number": number} for p, number in payments],
+    })
+
+
+@bp.get("/trend")
+@require_auth(*STAFF)
+def trend():
+    """Net takings per shop-local day for the last N days (default 7), oldest first, including empty days."""
+    shop = g.shop
+    try:
+        days = max(1, min(int(request.args.get("days", 7)), 90))
+    except ValueError:
+        raise APIError(400, "invalid_days", "days must be a number") from None
+    today = datetime.now(ZoneInfo(shop.timezone)).date()
+    first = today - timedelta(days=days - 1)
+    start, _ = _day_range(shop, first)
+    _, end = _day_range(shop, today)
+    local_day = func.date(func.timezone(shop.timezone, Payment.created_at))
+    rows = db.session.execute(
+        select(local_day, func.sum(Payment.amount))
+        .where(Payment.shop_id == shop.id, Payment.created_at >= start, Payment.created_at < end)
+        .group_by(local_day)
+    ).all()
+    totals = {day: amount for day, amount in rows}
+    return jsonify({
+        "days": [
+            {"date": (first + timedelta(days=i)).isoformat(), "net_takings": money(totals.get(first + timedelta(days=i), Decimal("0.00")))}
+            for i in range(days)
+        ],
     })
 
 

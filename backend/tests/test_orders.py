@@ -525,4 +525,23 @@ class TestReports:
     def test_reports_do_not_cross_shops(self, world):
         world.bespoke()
         assert world.other_owner.get("/api/reports/daily").json["net_takings"] == "0.00"
+        assert world.other_owner.get("/api/reports/daily").json["payments"] == []
         assert world.other_owner.get("/api/reports/overview").json["outstanding_count"] == 0
+        assert world.other_owner.get("/api/reports/trend").json["days"][-1]["net_takings"] == "0.00"
+
+    def test_daily_lists_each_payment_for_reconciliation(self, world):
+        order = world.bespoke(payments=[{"method": "mpesa", "amount": "2000.00", "reference": "SGK7QX2M9L"}]).json
+        world.owner.post(f"/api/orders/{order['id']}/refunds", {"method": "cash", "amount": "500.00", "note": "Goodwill"})
+        payments = world.owner.get("/api/reports/daily").json["payments"]
+        assert [(p["method"], p["amount"], p["reference"], p["order_number"]) for p in payments] == [
+            ("mpesa", "2000.00", "SGK7QX2M9L", order["number"]),
+            ("cash", "-500.00", None, order["number"]),
+        ]
+
+    def test_trend_gives_one_row_per_day_including_today(self, world):
+        world.bespoke(payments=[{"method": "cash", "amount": "3000.00"}])
+        days = world.owner.get("/api/reports/trend?days=7").json["days"]
+        assert len(days) == 7
+        assert days[-1]["net_takings"] == "3000.00"
+        assert all(d["net_takings"] == "0.00" for d in days[:-1])
+        assert world.owner.get("/api/reports/trend?days=x").status_code == 400

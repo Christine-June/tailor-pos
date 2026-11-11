@@ -69,12 +69,16 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Offline receipts with a reference until the order number arrives
 - [x] Installable app (PWA) that opens without internet: manifest, icons, service worker
 
-## Phase 7: Stock, reports, settings
-- [ ] Stock page: add items, adjust, movement history
-- [ ] Dashboard and daily cash-up page
-- [ ] Settings: shop details, VAT, deposit %, staff, printer setup
+## Phase 7: Stock, reports, settings ✅
+- [x] Stock page: add and edit items (owner), receive / count / write off stock, movement history, stock value at cost
+- [x] Dashboard: today's takings, balances owed, 7-day takings chart, overdue, due soon, ready to collect (with Call), low stock
+- [x] Daily cash-up: takings by method, cash drawer check (float, counted, over/short), every payment with M-Pesa codes, printable
+- [x] Settings: shop details, KRA PIN, receipt footer, VAT, deposit %, measurement unit, time zone
+- [x] Staff: add, change role, reset password, stop someone signing in (last owner protected)
+- [x] Printer: none / shop agent / direct, paper width, agent key with ready-to-run command, test page, recent jobs
 
 ## Phase 8: Deploy
+- [ ] Split the frontend bundle so each page loads on demand
 - [ ] Production Docker Compose (Postgres, API, web, Redis)
 - [ ] Domain, HTTPS, environment secrets
 - [ ] Daily database backups and a tested restore

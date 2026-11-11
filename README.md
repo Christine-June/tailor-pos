@@ -37,7 +37,7 @@ tailor-pos/
 │   ├── src/
 │   │   ├── components/      layout, route guards, receipt, ui/ (shadcn)
 │   │   ├── lib/             api client, money and checkout rules, types
-│   │   ├── pages/           login, sell/, customers/, orders/, workshop/ (board)
+│   │   ├── pages/           login, sell/, customers/, orders/, workshop/, stock/, reports/, settings/
 │   │   ├── store/           Redux Toolkit (session, cart, outbox, offline caches, sync)
 │   │   └── App.tsx          routes
 │   └── vite.config.ts
