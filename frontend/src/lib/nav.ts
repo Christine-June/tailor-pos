@@ -1,6 +1,7 @@
 import {
   BarChart3,
   ClipboardList,
+  LayoutDashboard,
   Package,
   Ruler,
   Scissors,
@@ -25,6 +26,7 @@ const STAFF: Role[] = ["owner", "cashier"]
 const EVERYONE: Role[] = ["owner", "cashier", "tailor"]
 
 export const NAV: NavItem[] = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: EVERYONE, phase: 9, summary: "This week at a glance." },
   { to: "/sell", label: "Sell", icon: ShoppingBag, roles: STAFF, phase: 3, summary: "Item grid, cart, split payments and receipts." },
   { to: "/orders", label: "Orders", icon: ClipboardList, roles: STAFF, phase: 5, summary: "Every order with balances, payments and history." },
   { to: "/customers", label: "Customers", icon: Ruler, roles: EVERYONE, phase: 4, summary: "Profiles and measurement history with side-by-side comparison." },
@@ -43,7 +45,7 @@ export function canAccess(role: Role, path: string): boolean {
   return item ? item.roles.includes(role) : false
 }
 
-/** Where each role lands after signing in: tailors go straight to the workshop. */
-export function homeFor(role: Role): string {
-  return role === "tailor" ? "/workshop" : "/sell"
+/** Where everyone lands after signing in: their dashboard (tailors see a workshop version). */
+export function homeFor(_role: Role): string {
+  return "/dashboard"
 }

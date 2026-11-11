@@ -538,6 +538,22 @@ class TestReports:
             ("cash", "-500.00", None, order["number"]),
         ]
 
+    def test_dashboard_summarises_the_week(self, world):
+        world.bespoke(payments=[{"method": "cash", "amount": "5000.00"}])
+        world.bespoke(payments=[{"method": "mpesa", "amount": "6000.00", "reference": "SGK7QX2M9L"}])
+        d = world.owner.get("/api/reports/dashboard").json
+        assert d["this_period"]["takings"] == "11000.00"
+        assert d["this_period"]["orders"] == 2
+        assert d["previous_period"]["takings"] == "0.00"
+        assert len(d["daily"]) == 7 and d["daily"][-1]["orders"] == 2
+        assert {m["method"] for m in d["by_method"]} == {"cash", "mpesa"}
+        assert d["top_products"][0]["revenue"]
+        assert d["recent_payments"][0]["order_number"]
+        assert d["workshop"]["confirmed"] == 2
+        assert d["staff"]["owner"] >= 1
+        assert world.tailor.get("/api/reports/dashboard").status_code == 403
+        assert world.other_owner.get("/api/reports/dashboard").json["this_period"]["orders"] == 0
+
     def test_trend_gives_one_row_per_day_including_today(self, world):
         world.bespoke(payments=[{"method": "cash", "amount": "3000.00"}])
         days = world.owner.get("/api/reports/trend?days=7").json["days"]

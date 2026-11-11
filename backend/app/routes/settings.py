@@ -10,7 +10,7 @@ from ..extensions import db
 from ..models import PrinterMode, User, UserRole
 from ..models.shop import audit
 from ..schemas import ShopPatch, UserIn, UserPatch, parse
-from ..utils.auth import OWNER, get_scoped, require_auth
+from ..utils.auth import OWNER, demo_locked, get_scoped, require_auth
 
 bp = Blueprint("settings", __name__, url_prefix="/api")
 
@@ -34,6 +34,7 @@ def update_shop():
 
 @bp.post("/settings/print-agent-token")
 @require_auth(*OWNER)
+@demo_locked
 def new_agent_token():
     """Shown once. Only its hash is stored, and generating a new one disconnects the old agent."""
     token = secrets.token_urlsafe(32)
@@ -63,6 +64,7 @@ def list_users():
 
 @bp.post("/users")
 @require_auth(*OWNER)
+@demo_locked
 def create_user():
     data = parse(UserIn)
     if not data.email:
@@ -80,6 +82,7 @@ def create_user():
 
 @bp.patch("/users/<uuid:user_id>")
 @require_auth(*OWNER)
+@demo_locked
 def update_user(user_id):
     user = get_scoped(User, user_id, "User")
     data = parse(UserPatch)

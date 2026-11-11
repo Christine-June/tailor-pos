@@ -5,6 +5,7 @@ import click
 from flask import Flask, current_app
 from sqlalchemy import select
 
+from .demo import seed_history
 from .extensions import db
 from .models import Customer, InventoryItem, ItemKind, Measurement, MovementReason, Shop, User, UserRole
 from .schemas import normalize_phone
@@ -35,8 +36,9 @@ def register_cli(app: Flask) -> None:
 
     @app.cli.command("seed-demo")
     def seed_demo():
-        """Create a demo shop with sample data. Refuses to run in production."""
-        if current_app.config["APP_ENV"] == "production":
+        """Create a demo shop with two weeks of sample trading. Refuses to run in production
+        unless the server is a demo deployment (DEMO_MODE=true)."""
+        if current_app.config["APP_ENV"] == "production" and not current_app.config["DEMO_MODE"]:
             raise click.ClickException("seed-demo is disabled in production")
         if db.session.scalar(select(User.id).where(User.email == "owner@demo.test")):
             click.echo("Demo data already present.")
@@ -97,5 +99,7 @@ def register_cli(app: Flask) -> None:
                 label="First fitting",
                 values={"neck": "15.50", "shoulders": "18.00", "chest": "40.00", "waist": "34.00", "hips": "39.50", "sleeve_length": "25.00", "inseam": "31.00"},
             ))
+        db.session.flush()
+        orders = seed_history(shop, staff)
         db.session.commit()
-        click.echo("Demo data created. Sign in as owner@demo.test / demo-password")
+        click.echo(f"Demo data created with {orders} orders over two weeks. Sign in as owner@demo.test / demo-password")

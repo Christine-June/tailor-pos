@@ -195,7 +195,7 @@ export function PrinterSettings() {
                 <li key={j.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2">
                   <span className="font-medium capitalize">{j.document.replace("_", " ")}</span>
                   <span className="text-xs text-muted-foreground">{formatDateTime(j.created_at, shop.timezone)}</span>
-                  <span className={cn("ml-auto text-xs font-medium", j.status === "failed" ? "text-destructive" : j.status === "done" ? "text-success" : "text-accent-foreground")}>
+                  <span className={cn("ml-auto text-xs font-medium", j.status === "failed" ? "text-destructive" : j.status === "done" ? "text-success" : "text-warning-foreground")}>
                     {JOB_STATUS[j.status]}
                   </span>
                   {j.error && <span className="w-full text-xs text-destructive">{j.error}</span>}

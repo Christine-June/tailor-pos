@@ -105,7 +105,7 @@ export function CompareFittings({ timeZone }: { timeZone: string }) {
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums">{r.before ?? "–"}</td>
                 <td className={cn("px-4 py-2 text-right tabular-nums", r.kind === "changed" && "font-semibold")}>{r.after ?? "–"}</td>
-                <td className={cn("px-4 py-2 text-right font-medium tabular-nums", r.kind === "changed" && "text-accent-foreground")}>{r.delta ?? ""}</td>
+                <td className={cn("px-4 py-2 text-right font-medium tabular-nums", r.kind === "changed" && "text-warning-foreground")}>{r.delta ?? ""}</td>
               </tr>
             ))}
             {shown.length === 0 && (

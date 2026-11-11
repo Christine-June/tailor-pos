@@ -8,9 +8,25 @@ from ..extensions import db, limiter
 from ..models import User
 from ..models.shop import audit
 from ..schemas import ChangePasswordIn, LoginIn, parse
-from ..utils.auth import require_auth
+from ..utils.auth import demo_locked, require_auth
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+meta_bp = Blueprint("meta", __name__, url_prefix="/api")
+
+
+@meta_bp.get("/meta")
+def meta():
+    """Public facts the sign-in page needs before anyone signs in."""
+    demo = current_app.config["DEMO_MODE"]
+    return jsonify({
+        "demo": demo,
+        "demo_accounts": [
+            {"role": "owner", "email": "owner@demo.test"},
+            {"role": "cashier", "email": "cashier@demo.test"},
+            {"role": "tailor", "email": "tailor@demo.test"},
+        ] if demo else [],
+        "demo_password": "demo-password" if demo else None,
+    })
 
 # Compared against when the email is unknown, so response time doesn't reveal which emails exist.
 _DUMMY_HASH = generate_password_hash("not-a-real-password")
@@ -55,6 +71,7 @@ def me():
 
 @bp.post("/change-password")
 @require_auth()
+@demo_locked
 def change_password():
     data = parse(ChangePasswordIn)
     if not g.user.check_password(data.current_password):

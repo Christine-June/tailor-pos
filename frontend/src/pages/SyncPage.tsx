@@ -33,7 +33,7 @@ export function SyncPage() {
         ) : online ? (
           <CloudUpload className="size-8 text-primary" aria-hidden="true" />
         ) : (
-          <CloudOff className="size-8 text-accent-foreground" aria-hidden="true" />
+          <CloudOff className="size-8 text-warning-foreground" aria-hidden="true" />
         )}
         <div className="min-w-0 flex-1">
           <p className="font-semibold">
@@ -104,7 +104,7 @@ export function SyncPage() {
               <li key={`${n.id}-${n.at}`} className="flex flex-wrap items-start gap-x-3 gap-y-1 p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{n.label}</span>
-                  <span className={n.warning ? "text-accent-foreground" : "text-muted-foreground"}>
+                  <span className={n.warning ? "text-warning-foreground" : "text-muted-foreground"}>
                     {n.warning && <AlertTriangle className="mr-1 inline size-3.5" />}
                     {n.message}
                   </span>
@@ -147,7 +147,7 @@ export function SyncPage() {
           <div className="space-y-2 text-sm">
             <p className="font-medium">{confirm.label}</p>
             {confirm.kind !== "customer" && (
-              <p className="rounded-md bg-warning/15 px-3 py-2 text-accent-foreground">
+              <p className="rounded-md bg-warning/15 px-3 py-2 text-warning-foreground">
                 If the customer already paid this money, record it again on the right order or give it back, so the cash drawer still balances.
               </p>
             )}

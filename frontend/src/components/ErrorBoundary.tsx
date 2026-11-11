@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
     return (
       <div className={this.props.inline ? "mx-auto max-w-md py-16 text-center" : "flex min-h-dvh items-center justify-center p-6 text-center"}>
         <div className="max-w-md space-y-3">
-          <TriangleAlert className="mx-auto size-10 text-accent-foreground" aria-hidden="true" />
+          <TriangleAlert className="mx-auto size-10 text-warning-foreground" aria-hidden="true" />
           <h2 className="text-lg font-semibold">{stale ? "A newer version is ready" : "Something went wrong on this screen"}</h2>
           <p className="text-sm text-muted-foreground">
             {stale

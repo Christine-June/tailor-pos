@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 import { Navigate, useLocation, useNavigate } from "react-router-dom"
 
@@ -8,7 +8,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, errorMessage } from "@/lib/api"
 import { canAccess, homeFor } from "@/lib/nav"
-import type { LoginResponse } from "@/lib/types"
+import type { LoginResponse, Role } from "@/lib/types"
+
+interface Meta {
+  demo: boolean
+  demo_accounts: { role: Role; email: string }[]
+  demo_password: string | null
+}
+
+const ROLE_NAME: Record<Role, string> = { owner: "Owner", cashier: "Cashier", tailor: "Tailor" }
+const DEV_DEMO: Meta = {
+  demo: true,
+  demo_accounts: (["owner", "cashier", "tailor"] as const).map((role) => ({ role, email: `${role}@demo.test` })),
+  demo_password: "demo-password",
+}
 import { signedIn } from "@/store/authSlice"
 import { useAppDispatch, useAppSelector } from "@/store"
 
@@ -21,6 +34,16 @@ export function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [demo, setDemo] = useState<Meta | null>(null)
+
+  // A demo server offers its sample accounts; a real shop's server never does.
+  useEffect(() => {
+    api
+      .get<Meta>("/meta", { auth: false })
+      // Local development always has the demo shop (seeded by docker compose up), without demo locks.
+      .then((m) => setDemo(m.demo ? m : import.meta.env.DEV ? DEV_DEMO : null))
+      .catch(() => import.meta.env.DEV && setDemo(DEV_DEMO))
+  }, [])
 
   if (user) return <Navigate to={homeFor(user.role)} replace />
 
@@ -30,10 +53,14 @@ export function LoginPage() {
       setError("Enter your email and password.")
       return
     }
+    await signIn(email.trim(), password)
+  }
+
+  async function signIn(loginEmail: string, loginPassword: string) {
     setBusy(true)
     setError(null)
     try {
-      const session = await api.post<LoginResponse>("/auth/login", { email: email.trim(), password }, { auth: false })
+      const session = await api.post<LoginResponse>("/auth/login", { email: loginEmail, password: loginPassword }, { auth: false })
       dispatch(signedIn(session))
       const from = (location.state as { from?: string } | null)?.from
       navigate(from && canAccess(session.user.role, from) ? from : homeFor(session.user.role), { replace: true })
@@ -113,16 +140,25 @@ export function LoginPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" size="lg" className="w-full" disabled={busy}>
+            {/* The sign-in page keeps its deep ink look; the blue accent starts inside the app. */}
+            <Button type="submit" size="lg" className="w-full bg-sidebar text-white hover:bg-sidebar/90" disabled={busy}>
               {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
               {busy ? "Signing in…" : "Sign in"}
             </Button>
           </form>
 
-          {import.meta.env.DEV && (
-            <p className="mt-8 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-              Demo: owner@demo.test, cashier@demo.test or tailor@demo.test, password <code>demo-password</code>
-            </p>
+          {demo && (
+            <div className="mt-8 rounded-lg border border-dashed p-4">
+              <p className="text-sm font-medium">Try the demo</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">A sample tailoring shop with two weeks of sales. Pick who to be:</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {demo.demo_accounts.map((a) => (
+                  <Button key={a.email} type="button" variant="outline" disabled={busy} onClick={() => void signIn(a.email, demo.demo_password ?? "")}>
+                    {ROLE_NAME[a.role]}
+                  </Button>
+                ))}
+              </div>
+            </div>
           )}
           <p className="mt-8 text-center text-xs text-muted-foreground">
             Tailor POS {__APP_VERSION__} ·{" "}

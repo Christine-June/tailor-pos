@@ -71,7 +71,7 @@ function CustomerSearch({ onChoose, onNew }: { onChoose: (c: Customer) => void; 
       <Button variant="outline" className="w-full justify-start" onClick={onNew}>
         <UserPlus /> New customer
       </Button>
-      {offline && <p className="text-xs text-accent-foreground">Offline: searching customers saved on this device.</p>}
+      {offline && <p className="text-xs text-warning-foreground">Offline: searching customers saved on this device.</p>}
       {error ? (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
       ) : results === null ? (

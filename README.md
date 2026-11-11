@@ -2,7 +2,7 @@
 
 A cloud point of sale and workshop manager for custom tailors and apparel designers: retail checkout, deposits and balances, customer measurement history, and job cards moving through the workshop.
 
-Progress is tracked in [CHECKLIST.md](CHECKLIST.md). To put it on a server, follow [DEPLOY.md](DEPLOY.md); to roll it out in a shop, [PILOT.md](PILOT.md).
+Progress is tracked in [CHECKLIST.md](CHECKLIST.md). To show it to a prospect, see [DEMO.md](DEMO.md). To put it on a server, follow [DEPLOY.md](DEPLOY.md); to roll it out in a shop, [PILOT.md](PILOT.md).
 
 ## Stack
 

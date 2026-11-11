@@ -2,7 +2,7 @@
 from functools import wraps
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, verify_jwt_in_request
 
 from ..errors import APIError, not_found
@@ -32,6 +32,18 @@ def require_auth(*roles: UserRole, refresh: bool = False):
         return wrapper
 
     return decorator
+
+
+def demo_locked(fn):
+    """Off on the public demo, so one visitor can't lock the next one out."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if current_app.config.get("DEMO_MODE"):
+            raise APIError(403, "demo_locked", "That's switched off in the demo, so every visitor can sign in. It works in a real shop.")
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 STAFF = (UserRole.OWNER, UserRole.CASHIER)

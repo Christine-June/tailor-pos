@@ -3,33 +3,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Ink-blue primary, brass accent, warm paper neutrals. System fonts so the app works offline. */
+/*
+ * Light, airy workspace with a clear blue accent: cool grey page, white rounded cards, blue for
+ * actions and the active menu item. The sign-in page keeps its deep ink panel (--sidebar tokens).
+ * System fonts only, so the app works offline and loads no third-party fonts.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.004 85);
-  --foreground: oklch(0.22 0.02 265);
+  --radius: 0.75rem;
+  --background: oklch(0.972 0.006 255);
+  --foreground: oklch(0.23 0.03 262);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 265);
+  --card-foreground: oklch(0.23 0.03 262);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 265);
-  --primary: oklch(0.3 0.06 265);
-  --primary-foreground: oklch(0.98 0.005 85);
-  --secondary: oklch(0.955 0.008 85);
-  --secondary-foreground: oklch(0.28 0.03 265);
-  --muted: oklch(0.955 0.008 85);
-  --muted-foreground: oklch(0.5 0.02 265);
-  --accent: oklch(0.93 0.04 85);
-  --accent-foreground: oklch(0.35 0.06 70);
+  --popover-foreground: oklch(0.23 0.03 262);
+  --primary: oklch(0.54 0.2 262);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.012 255);
+  --secondary-foreground: oklch(0.3 0.04 262);
+  --muted: oklch(0.962 0.008 255);
+  --muted-foreground: oklch(0.52 0.025 262);
+  --accent: oklch(0.945 0.03 258);
+  --accent-foreground: oklch(0.42 0.17 262);
   --brass: oklch(0.8 0.1 80);
-  --destructive: oklch(0.55 0.2 27);
-  --success: oklch(0.55 0.13 155);
-  --warning: oklch(0.7 0.14 70);
-  --border: oklch(0.91 0.01 85);
-  --input: oklch(0.88 0.012 85);
-  --ring: oklch(0.45 0.08 265);
+  --destructive: oklch(0.56 0.21 27);
+  --success: oklch(0.58 0.15 152);
+  --warning: oklch(0.75 0.15 70);
+  --warning-foreground: oklch(0.47 0.12 60);
+  --border: oklch(0.925 0.008 255);
+  --input: oklch(0.89 0.012 255);
+  --ring: oklch(0.56 0.18 262);
+  /* Sign-in page panel. */
   --sidebar: oklch(0.24 0.045 265);
   --sidebar-foreground: oklch(0.86 0.015 85);
   --sidebar-active: oklch(0.32 0.05 265);
+  /* App menu: light, with a blue pill for the current page. */
+  --nav: oklch(1 0 0);
+  --nav-foreground: oklch(0.42 0.025 262);
+  --nav-active: oklch(0.54 0.2 262);
+  --nav-active-foreground: oklch(0.99 0 0);
+  --nav-hover: oklch(0.96 0.015 258);
 }
 
 .dark {
@@ -39,20 +51,25 @@
   --card-foreground: oklch(0.95 0.008 85);
   --popover: oklch(0.21 0.02 265);
   --popover-foreground: oklch(0.95 0.008 85);
-  --primary: oklch(0.82 0.09 80);
-  --primary-foreground: oklch(0.2 0.03 265);
+  --primary: oklch(0.66 0.17 262);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.27 0.02 265);
   --secondary-foreground: oklch(0.95 0.008 85);
   --muted: oklch(0.27 0.02 265);
   --muted-foreground: oklch(0.7 0.015 265);
-  --accent: oklch(0.3 0.03 265);
-  --accent-foreground: oklch(0.9 0.06 80);
+  --accent: oklch(0.3 0.05 262);
+  --accent-foreground: oklch(0.85 0.09 262);
+  --warning-foreground: oklch(0.82 0.12 75);
   --destructive: oklch(0.65 0.19 25);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.08 80);
+  --ring: oklch(0.7 0.14 262);
   --sidebar: oklch(0.14 0.015 265);
   --sidebar-active: oklch(0.24 0.03 265);
+  --nav: oklch(0.2 0.02 265);
+  --nav-foreground: oklch(0.78 0.02 262);
+  --nav-active: oklch(0.66 0.17 262);
+  --nav-hover: oklch(0.26 0.03 262);
 }
 
 @theme inline {
@@ -79,6 +96,12 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-foreground: var(--nav-active-foreground);
+  --color-nav-hover: var(--nav-hover);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

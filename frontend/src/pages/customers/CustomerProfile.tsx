@@ -320,7 +320,7 @@ function CustomerOrders({ customerId, timeZone }: { customerId: string; timeZone
   return (
     <div className="space-y-3">
       {owed > 0n && (
-        <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+        <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
           Balance owed across orders: <strong>{formatMoney(owed)}</strong>
         </p>
       )}

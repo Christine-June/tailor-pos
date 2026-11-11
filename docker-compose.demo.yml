@@ -1,0 +1,14 @@
+# A demo for prospects: the production build with demo mode on (sample shop, one-tap sign-in,
+# account changes locked). Use deploy/demo-up.sh, which adds this file to docker-compose.prod.yml.
+services:
+  api:
+    environment:
+      DEMO_MODE: "true"
+    # Loads the sample shop and two weeks of trading the first time; does nothing after that.
+    command: ["sh", "-c", "flask db upgrade && flask seed-demo && exec gunicorn run:app --bind 0.0.0.0:5000 --workers 2 --threads 4 --timeout 60 --access-logfile - --error-logfile -"]
+  web:
+    ports: !override
+      - "8080:80"
+  # Demo data isn't worth backing up.
+  backup:
+    profiles: ["never"]

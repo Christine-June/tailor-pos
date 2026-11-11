@@ -8,7 +8,7 @@ import { Dashboard } from "./Dashboard"
 
 // Absolute paths: inside a "/reports/*" route, relative links resolve from the current sub-page.
 const TABS = [
-  { to: "/reports", label: "Dashboard", end: true },
+  { to: "/reports", label: "Overview", end: true },
   { to: "/reports/cash-up", label: "Daily cash-up", end: false },
 ]
 

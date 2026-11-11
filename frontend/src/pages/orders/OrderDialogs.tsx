@@ -431,7 +431,7 @@ export function MoveDialog({ open, order, role, to, onClose, onDone, onTakePayme
     >
       <div className="space-y-4">
         {handover && (
-          <div className="rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+          <div className="rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
             <p>
               <strong>{formatMoney(balance)}</strong> is still owed. Collect it before handing over.
             </p>

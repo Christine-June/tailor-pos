@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest"
 import { canAccess, homeFor, navFor } from "./nav"
 
 describe("role navigation", () => {
-  it("gives tailors only the workshop and customers", () => {
-    expect(navFor("tailor").map((n) => n.label)).toEqual(["Customers", "Workshop"])
-    expect(homeFor("tailor")).toBe("/workshop")
+  it("gives tailors only their dashboard, the workshop and customers", () => {
+    expect(navFor("tailor").map((n) => n.label)).toEqual(["Dashboard", "Customers", "Workshop"])
+  })
+
+  it("lands everyone on their dashboard after signing in", () => {
+    for (const role of ["owner", "cashier", "tailor"] as const) expect(homeFor(role)).toBe("/dashboard")
   })
 
   it("keeps settings for owners", () => {

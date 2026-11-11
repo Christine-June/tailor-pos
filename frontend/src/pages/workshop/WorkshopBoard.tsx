@@ -243,7 +243,7 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
         </Button>
       </div>
       {staleSince ? (
-        <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+        <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
           Offline: this is the board as it was at {formatDateTime(staleSince, shop.timezone)}. Moving cards needs the internet.
         </p>
       ) : (
@@ -400,7 +400,7 @@ function CardBody({ card, today, menuSpace = false }: { card: JobCard; today: st
           <span
             className={cn(
               "rounded px-1.5 py-0.5 text-[11px] font-medium",
-              due === "overdue" ? "bg-destructive/10 text-destructive" : due === "today" || due === "soon" ? "bg-warning/20 text-accent-foreground" : "bg-muted text-muted-foreground",
+              due === "overdue" ? "bg-destructive/10 text-destructive" : due === "today" || due === "soon" ? "bg-warning/20 text-warning-foreground" : "bg-muted text-muted-foreground",
             )}
           >
             {due === "overdue" ? "Overdue " : due === "today" ? "Today " : ""}

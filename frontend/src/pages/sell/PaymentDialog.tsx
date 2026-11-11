@@ -236,7 +236,7 @@ export function PaymentDialog({ open, cart, totals, role, shop, user, onClose, o
         </dl>
 
         {belowDeposit && role === "owner" && settlement.errors.length === 0 && (
-          <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+          <p className="rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
             Below the {formatMoney(totals.deposit)} deposit. As the owner you can confirm the order anyway.
           </p>
         )}

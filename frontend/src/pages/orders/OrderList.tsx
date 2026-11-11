@@ -160,7 +160,7 @@ export function OrderList({ timeZone }: { timeZone: string }) {
                     <span className="hidden sm:block">
                       <StatusBadge status={o.status} />
                       {o.due_date && (
-                        <span className={cn("mt-1 block text-xs", due === "overdue" ? "font-medium text-destructive" : due ? "text-accent-foreground" : "text-muted-foreground")}>
+                        <span className={cn("mt-1 block text-xs", due === "overdue" ? "font-medium text-destructive" : due ? "text-warning-foreground" : "text-muted-foreground")}>
                           {due === "overdue" ? "Overdue · " : due === "today" ? "Due today · " : "Due "}
                           {formatDate(o.due_date).replace(/^\w+, /, "")}
                         </span>

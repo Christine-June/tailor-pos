@@ -47,6 +47,10 @@ class Config:
 
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
 
+    # A public demo for prospects: the sign-in page offers the demo accounts, and anything that
+    # would lock the next visitor out (passwords, staff accounts, printer keys) is switched off.
+    DEMO_MODE = os.environ.get("DEMO_MODE", "false").lower() == "true"
+
     # Error monitoring. Empty means off. Never sends request bodies or user details (see monitoring.py).
     SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
     SENTRY_TRACES_SAMPLE_RATE = float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0"))

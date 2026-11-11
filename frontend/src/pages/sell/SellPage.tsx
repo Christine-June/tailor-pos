@@ -119,7 +119,7 @@ export function SellPage() {
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="pb-24 lg:pb-0">
         {fromCache && (
-          <p className="mb-3 rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+          <p className="mb-3 rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
             Offline: showing items and prices saved on this device at {formatDateTime(fromCache, shop.timezone)}. Stock counts may be out of date.
           </p>
         )}

@@ -88,6 +88,14 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [ ] Your server and domain live with HTTPS (DEPLOY.md steps 1–5)
 - [ ] Pilot in one real tailor shop (PILOT.md)
 
+## Phase 9: Ready to show prospects ✅
+- [x] Home dashboard for everyone after sign-in: this week vs last week, takings/orders chart, payment methods, workshop pipeline, top sellers, recent payments (tailors get a workshop version with no money)
+- [x] Account: who's signed in on the dashboard and in the header menu; My account page with password change
+- [x] New look: light layout, white rounded cards, blue accent (sign-in page unchanged)
+- [x] Menu switches pages instantly (pages preloaded; the logo goes to the dashboard)
+- [x] Demo mode: sample shop with two weeks of trading, one-tap demo sign-in, account changes locked
+- [x] One command to share the demo with a public https link (DEMO.md)
+
 ## Later (needed before selling widely in Kenya)
 - [ ] KRA eTIMS invoice integration (tax compliance)
 - [ ] M-Pesa STK push (Daraja API) instead of typing codes

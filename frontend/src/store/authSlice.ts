@@ -22,6 +22,11 @@ const authSlice = createSlice({
     accessTokenRefreshed(state, action: PayloadAction<string>) {
       state.accessToken = action.payload
     },
+    /** After a password change: this device keeps working, every other device is signed out. */
+    tokensReplaced(state, action: PayloadAction<{ access_token: string; refresh_token: string }>) {
+      state.accessToken = action.payload.access_token
+      state.refreshToken = action.payload.refresh_token
+    },
     sessionUpdated(state, action: PayloadAction<{ user: User; shop: Shop }>) {
       state.user = action.payload.user
       state.shop = action.payload.shop
@@ -32,5 +37,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { signedIn, accessTokenRefreshed, sessionUpdated, signedOut } = authSlice.actions
+export const { signedIn, accessTokenRefreshed, tokensReplaced, sessionUpdated, signedOut } = authSlice.actions
 export default authSlice.reducer

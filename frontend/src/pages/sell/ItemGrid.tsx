@@ -128,7 +128,7 @@ function ItemCard({ item, onPick }: { item: InventoryItem; onPick: (item: Invent
           {isMeasured(item) && <span className="text-xs font-normal text-muted-foreground"> / {item.unit}</span>}
         </p>
         {item.track_stock && (
-          <p className={cn("text-xs", out ? "text-destructive" : item.is_low ? "text-accent-foreground" : "text-muted-foreground")}>
+          <p className={cn("text-xs", out ? "text-destructive" : item.is_low ? "text-warning-foreground" : "text-muted-foreground")}>
             {out ? "Out of stock" : `${formatQuantity(onHand!)} ${item.unit} left${item.is_low ? " · low" : ""}`}
           </p>
         )}

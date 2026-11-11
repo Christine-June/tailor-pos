@@ -91,7 +91,7 @@ export function Dashboard() {
               {overview.low_stock.map((i) => (
                 <li key={i.id} className="flex justify-between gap-2 px-4 py-2.5">
                   <span>{i.name}</span>
-                  <span className={cn("tabular-nums", (parseSignedQuantity(i.quantity_on_hand) ?? 0n) <= 0n ? "text-destructive" : "text-accent-foreground")}>
+                  <span className={cn("tabular-nums", (parseSignedQuantity(i.quantity_on_hand) ?? 0n) <= 0n ? "text-destructive" : "text-warning-foreground")}>
                     {trimZeros(i.quantity_on_hand)} {i.unit} <span className="text-xs text-muted-foreground">(warn at {trimZeros(i.reorder_level)})</span>
                   </span>
                 </li>

@@ -144,7 +144,7 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
                 <span>Walk-in customer</span>
               )}
               {order.due_date && (
-                <span className={cn("inline-flex items-center gap-1.5", due === "overdue" && "font-medium text-destructive", due === "today" && "font-medium text-accent-foreground")}>
+                <span className={cn("inline-flex items-center gap-1.5", due === "overdue" && "font-medium text-destructive", due === "today" && "font-medium text-warning-foreground")}>
                   <CalendarClock className="size-3.5" />
                   {due === "overdue" ? "Overdue: " : "Collect "}
                   {formatDate(order.due_date)}
@@ -308,7 +308,7 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
                   <li key={e.id} className="flex justify-between gap-2 px-4 py-2.5">
                     <span>
                       {METHOD_LABEL[String(e.body.method)] ?? "Payment"}
-                      <span className="block text-xs text-accent-foreground">
+                      <span className="block text-xs text-warning-foreground">
                         {e.state === "failed" ? `Needs attention: ${e.error?.message}` : "Saved on this device, waiting to sync"}
                       </span>
                     </span>

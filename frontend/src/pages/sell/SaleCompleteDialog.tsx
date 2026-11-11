@@ -58,7 +58,7 @@ export function SaleCompleteDialog({
       <PrintableReceipt order={order} shop={shop} />
       <div className="space-y-4">
         {offline && (
-          <p className="flex gap-2 rounded-md bg-warning/15 px-3 py-2 text-sm text-accent-foreground">
+          <p className="flex gap-2 rounded-md bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
             <CloudOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
               No internet, so this is saved on this device (ref {offlineRef(order.id)}). It will sync by itself when the connection is back, and gets its order number then.
