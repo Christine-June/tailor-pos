@@ -120,6 +120,10 @@ def adjust_stock(item_id):
     delta = data.delta if data.delta is not None else data.counted_quantity - item.quantity_on_hand
     if delta == 0:
         return jsonify(_serialize(item))
+    # Taking stock off the books (waste, a lower count) could hide missing stock, so it's the owner's call.
+    # Cashiers can still receive deliveries and returns.
+    if delta < 0 and g.user.role != UserRole.OWNER:
+        raise APIError(403, "stock_loss_owner_only", "Only the owner can take stock off. Ask the owner to record it.")
     movement = apply_movement(item, delta, data.reason, user_id=g.user.id, note=data.note)
     db.session.flush()
     audit(g.shop.id, g.user.id, "inventory.adjusted", "inventory_item", item.id, delta=str(delta), reason=data.reason.value, movement_id=str(movement.id))

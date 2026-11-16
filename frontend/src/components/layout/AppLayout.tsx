@@ -280,7 +280,7 @@ export function AppLayout() {
           }
         >
           <p className="text-sm">
-            They stay on this device and sync after the next person from your shop signs in here. Staying signed in until they sync is best.{" "}
+            They stay on this device and sync the next time you sign in here, so they stay recorded as yours. Staying signed in until they sync is best.{" "}
             <Link to="/sync" className="underline underline-offset-4" onClick={() => setConfirmSignOut(false)}>
               See what's waiting
             </Link>

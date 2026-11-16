@@ -27,7 +27,7 @@ describe("offline sales", () => {
     const c = cart()
     const totals = cartTotals(c, shop)
     const s = settle([{ key: "t", method: "cash", amount: "5000", reference: "" }], totals.total)
-    const entry = orderEntry(buildOrderPayload(c, s), c, totals, "shop-1", "Demo Cashier", now)
+    const entry = orderEntry(buildOrderPayload(c, s), c, totals, "shop-1", { id: "u-1", name: "Demo Cashier" }, now)
     expect(entry).toMatchObject({ id: c.saleId, kind: "order", path: "/orders", label: "Sale · KES 3,000.00 · Walk-in", createdAt: now.toISOString() })
     expect(entry.body).toMatchObject({ id: c.saleId, offline: true, payments: [{ method: "cash", amount: "3000.00", tendered: "5000.00" }] })
     expect(entry.dependsOn).toBeUndefined()
@@ -37,9 +37,9 @@ describe("offline sales", () => {
     const customer = localCustomer("cust-1", "Akinyi", "Otieno", "+254711000111", now)
     const c = cart({ customer })
     const totals = cartTotals(c, shop)
-    const entry = orderEntry(buildOrderPayload(c, settle([], totals.total)), c, totals, "shop-1", "x", now)
+    const entry = orderEntry(buildOrderPayload(c, settle([], totals.total)), c, totals, "shop-1", { id: "u-1", name: "x" }, now)
     expect(entry.dependsOn).toBe("cust-1")
-    expect(customerEntry(customer, "shop-1", "x", now)).toMatchObject({
+    expect(customerEntry(customer, "shop-1", { id: "u-1", name: "x" }, now)).toMatchObject({
       id: "cust-1",
       path: "/customers",
       body: { id: "cust-1", first_name: "Akinyi", allow_duplicate_phone: true },
@@ -65,7 +65,7 @@ describe("offline sales", () => {
   })
 
   it("queues a payment behind its order", () => {
-    const entry = paymentEntry("order-1", 7, { id: "pay-1", method: "mpesa", amount: "500.00", reference: "SGK7QX2M9L" }, "shop-1", "x", now)
+    const entry = paymentEntry("order-1", 7, { id: "pay-1", method: "mpesa", amount: "500.00", reference: "SGK7QX2M9L" }, "shop-1", { id: "u-1", name: "x" }, now)
     expect(entry).toMatchObject({ id: "pay-1", path: "/orders/order-1/payments", orderId: "order-1", dependsOn: "order-1", label: "Payment · KES 500.00 on order #7" })
   })
 })

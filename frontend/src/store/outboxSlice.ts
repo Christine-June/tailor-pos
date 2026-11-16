@@ -11,8 +11,14 @@ export interface OutboxEntry {
   id: string
   kind: OutboxKind
   shopId: string
-  /** Who made it, for the Sync page. The server records whoever is signed in when it syncs. */
+  /** Who made it, for the Sync page. */
   createdBy: string
+  /**
+   * Their user id. The server records (and checks the role of) whoever is signed in when it syncs,
+   * so an entry is only sent while the person who made it is signed in. Missing on entries queued
+   * before Phase 11; those go with anyone from the shop, as before.
+   */
+  userId?: string
   path: string
   body: Record<string, unknown>
   /** e.g. "Sale · KES 1,500.00 · Wanjiru Kamau" */

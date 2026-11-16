@@ -63,6 +63,9 @@ class Order(db.Model):
     cancel_reason = db.Column(db.String(300))
     stock_committed = db.Column(db.Boolean, nullable=False, default=False)
     created_offline = db.Column(db.Boolean, nullable=False, default=False)
+    # Set when an offline sale broke a rule the server would normally enforce (price below the list,
+    # an archived item, stock below zero). Cleared when the owner marks it as checked.
+    review_reason = db.Column(db.String(300))
 
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
@@ -127,6 +130,7 @@ class Order(db.Model):
             "notes": self.notes,
             "cancel_reason": self.cancel_reason,
             "created_offline": self.created_offline,
+            "review_reason": self.review_reason,
             "created_at": iso(self.created_at),
             "completed_at": iso(self.completed_at),
         }

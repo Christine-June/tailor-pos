@@ -8,19 +8,22 @@ import { formatQuantity, formatMoney, lineTotal, parseMoney, parseQuantity, toAp
 import type { Customer, Order, Shop } from "./types"
 
 type NewEntry = Omit<OutboxEntry, "attempts" | "state" | "error">
+/** The signed-in person, so the entry is only sent while they are signed in. */
+export type Author = { id: string; name: string }
 
 /** True when the browser itself knows there's no network, so we needn't wait for a timeout. */
 export function knownOffline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine === false
 }
 
-export function orderEntry(payload: OrderPayload, cart: Cart, totals: Totals, shopId: string, createdBy: string, now = new Date()): NewEntry {
+export function orderEntry(payload: OrderPayload, cart: Cart, totals: Totals, shopId: string, by: Author, now = new Date()): NewEntry {
   const who = cart.customer?.full_name ?? "Walk-in"
   return {
     id: payload.id,
     kind: "order",
     shopId,
-    createdBy,
+    createdBy: by.name,
+    userId: by.id,
     path: "/orders",
     // offline: the server keeps the sale even if stock or prices moved on, as it already happened.
     body: { ...payload, offline: true },
@@ -35,14 +38,15 @@ export function paymentEntry(
   orderNumber: number,
   body: { id: string; method: string; amount: string } & Record<string, unknown>,
   shopId: string,
-  createdBy: string,
+  by: Author,
   now = new Date(),
 ): NewEntry {
   return {
     id: body.id,
     kind: "payment",
     shopId,
-    createdBy,
+    createdBy: by.name,
+    userId: by.id,
     path: `/orders/${orderId}/payments`,
     body,
     label: `Payment · ${formatMoney(body.amount)} on order #${orderNumber}`,
@@ -52,12 +56,13 @@ export function paymentEntry(
   }
 }
 
-export function customerEntry(customer: Customer, shopId: string, createdBy: string, now = new Date()): NewEntry {
+export function customerEntry(customer: Customer, shopId: string, by: Author, now = new Date()): NewEntry {
   return {
     id: customer.id,
     kind: "customer",
     shopId,
-    createdBy,
+    createdBy: by.name,
+    userId: by.id,
     path: "/customers",
     // A duplicate phone can't be checked offline; it's only a warning, so let it through.
     body: { id: customer.id, first_name: customer.first_name, last_name: customer.last_name, phone: customer.phone, allow_duplicate_phone: true },

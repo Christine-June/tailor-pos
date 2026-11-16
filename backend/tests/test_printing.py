@@ -107,7 +107,7 @@ class TestNetworkMode:
 
     def test_direct_mode_blocked_on_cloud_deployments(self, app, world):
         order = world.bespoke().json
-        world.owner.patch("/api/settings/shop", {"printer_mode": "network", "printer_host": "169.254.169.254", "printer_port": 80})
+        world.owner.patch("/api/settings/shop", {"printer_mode": "network", "printer_host": "192.168.1.50", "printer_port": 9100})
         app.config["ALLOW_DIRECT_PRINT"] = False
         try:
             res = world.cashier.post(f"/api/print/orders/{order['id']}/receipt")
@@ -115,6 +115,35 @@ class TestNetworkMode:
             app.config["ALLOW_DIRECT_PRINT"] = True
         assert res.status_code == 409
         assert res.json["error"]["code"] == "direct_print_disabled"
+
+    def test_printer_must_be_a_local_ip_on_a_printer_port(self, app, world):
+        def save(host, port=9100):
+            return world.owner.patch("/api/settings/shop", {"printer_mode": "network", "printer_host": host, "printer_port": port})
+
+        app.config["PRINTER_PORTS"] = "9100-9109"
+        try:
+            # Names could be the database or Redis on the server's own network.
+            for host in ("db", "redis", "printer.local", "169.254.169.254", "8.8.8.8", "0.0.0.0", "224.0.0.1"):
+                res = save(host)
+                assert res.status_code == 422, host
+                assert res.json["error"]["code"] == "printer_address_not_allowed"
+            assert save("192.168.1.50", 6379).status_code == 422
+            assert save("192.168.1.50", 9100).status_code == 200
+            assert save("10.0.0.7", 9101).status_code == 200
+        finally:
+            app.config["PRINTER_PORTS"] = "1-65535"
+
+    def test_address_saved_before_the_rule_is_refused_at_print_time(self, app, world):
+        order = world.bespoke().json
+        from app.models import Shop
+
+        with app.app_context():
+            shop = db.session.get(Shop, world.shop_id)
+            shop.printer_mode, shop.printer_host, shop.printer_port = "network", "redis", 6379
+            db.session.commit()
+        res = world.cashier.post(f"/api/print/orders/{order['id']}/receipt")
+        assert res.status_code == 409
+        assert res.json["error"]["code"] == "printer_address_not_allowed"
 
     def test_unconfigured_printer_gives_guidance(self, world):
         order = world.bespoke().json

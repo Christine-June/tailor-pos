@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, errorMessage } from "@/lib/api"
 import { formatDateTime, trimZeros } from "@/lib/format"
-import { buildAdjustment, buildItemBody, KIND_LABEL, MANUAL_REASONS, REASON_LABEL, type ItemDraft } from "@/lib/stock"
+import { buildAdjustment, buildItemBody, KIND_LABEL, MANUAL_REASONS, reasonsFor, REASON_LABEL, type ItemDraft } from "@/lib/stock"
 import type { InventoryItem, ItemKind, MovementReason, Page, StockMovement } from "@/lib/types"
 import { DEFAULT_UNIT, formatAmount, isWholeUnit, perUnit, unitDef, UNITS, unitWord } from "@/lib/units"
 import { cn } from "@/lib/utils"
 import { uuid } from "@/lib/uuid"
+import { useAppSelector } from "@/store"
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 
@@ -213,6 +214,7 @@ export function ItemDialog({
 
 /** Receive stock, record damage, or set the shelf count. Every change is kept in the history. */
 export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem | null; onClose: () => void; onSaved: (item: InventoryItem, message: string) => void }) {
+  const isOwner = useAppSelector((s) => s.auth.user?.role) === "owner"
   const [reason, setReason] = useState<MovementReason>("purchase")
   const [amount, setAmount] = useState("")
   const [sign, setSign] = useState<"add" | "remove">("add")
@@ -231,10 +233,10 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
 
   if (!item) return null
   const spec = MANUAL_REASONS.find((r) => r.reason === reason)!
-  const preview = amount.trim() ? buildAdjustment({ reason, amount, sign }, item.quantity_on_hand, item.unit) : null
+  const preview = amount.trim() ? buildAdjustment({ reason, amount, sign }, item.quantity_on_hand, item.unit, isOwner) : null
 
   async function save() {
-    const built = buildAdjustment({ reason, amount, sign }, item!.quantity_on_hand, item!.unit)
+    const built = buildAdjustment({ reason, amount, sign }, item!.quantity_on_hand, item!.unit, isOwner)
     if ("error" in built) {
       setError(built.error)
       return
@@ -273,7 +275,7 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
       >
         <fieldset className="grid gap-2 sm:grid-cols-2">
           <legend className="mb-2 text-sm font-medium">What happened?</legend>
-          {MANUAL_REASONS.map((r) => (
+          {reasonsFor(isOwner).map((r) => (
             <label
               key={r.reason}
               className={cn("flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm", reason === r.reason && "border-primary bg-primary/5")}
@@ -283,7 +285,8 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
             </label>
           ))}
         </fieldset>
-        {spec.direction === "either" && (
+        {!isOwner && <p className="text-xs text-muted-foreground">Damage, offcuts and lower counts are recorded by the owner.</p>}
+        {spec.direction === "either" && isOwner && (
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" role="radiogroup" aria-label="Add or remove">
             {(["add", "remove"] as const).map((s) => (
               <button

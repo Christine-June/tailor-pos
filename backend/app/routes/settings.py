@@ -11,16 +11,24 @@ from ..models import PrinterMode, User, UserRole
 from ..models.shop import audit
 from ..schemas import ShopPatch, UserIn, UserPatch, parse
 from ..utils.auth import OWNER, demo_locked, get_scoped, require_auth
+from .printing import printer_address_problem
 
 bp = Blueprint("settings", __name__, url_prefix="/api")
 
 
 @bp.patch("/settings/shop")
 @require_auth(*OWNER)
+@demo_locked
 def update_shop():
     data = parse(ShopPatch)
     if data.timezone and data.timezone not in available_timezones():
         raise APIError(422, "invalid_timezone", "Unknown timezone")
+    if {"printer_host", "printer_port"} & data.model_fields_set:
+        host = data.printer_host if "printer_host" in data.model_fields_set else g.shop.printer_host
+        port = data.printer_port if data.printer_port is not None else g.shop.printer_port
+        problem = printer_address_problem(host, port)
+        if problem:
+            raise APIError(422, "printer_address_not_allowed", problem)
     required = {"name", "timezone", "vat_registered", "vat_rate", "min_deposit_pct", "measurement_unit", "printer_mode", "printer_port", "printer_width"}
     for name in data.model_fields_set:
         value = getattr(data, name)

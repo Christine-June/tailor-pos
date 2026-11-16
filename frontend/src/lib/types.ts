@@ -188,6 +188,8 @@ export interface Order {
   notes: string | null
   cancel_reason: string | null
   created_offline: boolean
+  /** An offline sale that skipped a rule (price below the list, etc.), waiting for the owner. */
+  review_reason?: string | null
   created_at: string
   completed_at: string | null
 }

@@ -23,6 +23,8 @@ def app():
         "SQLALCHEMY_DATABASE_URI": os.environ["TEST_DATABASE_URL"],
         "RATELIMIT_ENABLED": False,
         "ALLOW_DIRECT_PRINT": True,
+        # The fake printer listens on a random port; test_printing checks the real 9100 rule.
+        "PRINTER_PORTS": "1-65535",
     })
     with application.app_context():
         upgrade()

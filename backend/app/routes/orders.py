@@ -45,6 +45,8 @@ def list_orders():
             query = query.where(Order.kind == OrderKind(request.args["kind"]))
         except ValueError:
             raise APIError(400, "invalid_kind", "Unknown kind filter") from None
+    if request.args.get("review") == "true":
+        query = query.where(Order.review_reason.is_not(None))
     if request.args.get("outstanding") == "true":
         query = query.where(Order.status != OrderStatus.CANCELLED, Order.total > _paid_subquery())
     term = (request.args.get("q") or "").strip()
@@ -136,6 +138,14 @@ def transition(order_id):
     db.session.commit()
     if g.user.role == UserRole.TAILOR:
         return jsonify(order.to_job_card())
+    return jsonify(order.to_dict(include_events=True))
+
+
+@bp.post("/orders/<uuid:order_id>/reviewed")
+@require_auth(*OWNER)
+def mark_reviewed(order_id):
+    order = service.mark_reviewed(g.shop, g.user, order_id)
+    db.session.commit()
     return jsonify(order.to_dict(include_events=True))
 
 

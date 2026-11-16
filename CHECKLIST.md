@@ -102,6 +102,13 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Pieces, sets, pairs, rolls and jobs only take whole numbers (adding stock, counts, selling), checked on the server too
 - [x] Buttons and menu use the sign-in page's navy
 
+## Phase 11: Security fixes ✅
+- [x] Offline sales that skipped a rule (price below the list, an archived item, stock below zero) are kept but listed on the owner's dashboard to check
+- [x] Sales saved offline sync only when the person who made them is signed in, so they keep the right name and permissions
+- [x] Direct network printing only accepts a local IP address on a printer port (9100), never the database or Redis
+- [x] Only the owner can take stock off (damage, offcuts, lower counts); cashiers can still receive stock
+- [x] Shop settings are locked in the demo
+
 ## Later (needed before selling widely in Kenya)
 - [ ] KRA eTIMS invoice integration (tax compliance)
 - [ ] M-Pesa STK push (Daraja API) instead of typing codes

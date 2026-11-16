@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { buildAdjustment, buildItemBody, type ItemDraft } from "./stock"
+import { buildAdjustment, buildItemBody, OWNER_ONLY_LOSS, reasonsFor, type ItemDraft } from "./stock"
 import { formatAmount, isWholeUnit, perUnit, unitWord, wholeNumberProblem } from "./units"
 
 describe("unit words", () => {
@@ -37,6 +37,16 @@ describe("stock forms with whole-number units", () => {
     expect(buildAdjustment({ reason: "purchase", amount: "0.5", sign: "add" }, "3.000", "pcs")).toHaveProperty("error")
     expect(buildAdjustment({ reason: "purchase", amount: "4", sign: "add" }, "3.000", "pcs")).toMatchObject({ after: 7000n })
     expect(buildAdjustment({ reason: "waste", amount: "5", sign: "add" }, "3.000", "pcs")).toEqual({ error: "Only 3 pieces in stock." })
+  })
+
+  it("lets a cashier receive stock but not take it off", () => {
+    const cashier = (input: Parameters<typeof buildAdjustment>[0]) => buildAdjustment(input, "3.000", "pcs", false)
+    expect(cashier({ reason: "purchase", amount: "2", sign: "add" })).toMatchObject({ after: 5000n })
+    expect(cashier({ reason: "waste", amount: "1", sign: "add" })).toEqual({ error: OWNER_ONLY_LOSS })
+    expect(cashier({ reason: "adjustment", amount: "1", sign: "remove" })).toEqual({ error: OWNER_ONLY_LOSS })
+    expect(cashier({ reason: "stock_count", amount: "2", sign: "add" })).toEqual({ error: OWNER_ONLY_LOSS })
+    expect(cashier({ reason: "stock_count", amount: "4", sign: "add" })).toMatchObject({ after: 4000n })
+    expect(reasonsFor(false).map((r) => r.reason)).not.toContain("waste")
   })
 
   it("still lets cloth be cut to any length", () => {

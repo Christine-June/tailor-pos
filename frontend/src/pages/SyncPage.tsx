@@ -21,7 +21,8 @@ export function SyncPage() {
   const dispatch = useAppDispatch()
   const online = useOnline()
   const status = useSyncStatus()
-  const { pending, failed, recent } = useOutbox()
+  const { pending, failed, recent, waitingForOthers } = useOutbox()
+  const otherNames = [...new Set(waitingForOthers.map((e) => e.createdBy))]
   const [confirm, setConfirm] = useState<OutboxEntry | null>(null)
   const tz = shop.timezone
 
@@ -55,6 +56,13 @@ export function SyncPage() {
           {status.running ? <Loader2 className="animate-spin" /> : <RefreshCw />} Sync now
         </Button>
       </section>
+
+      {waitingForOthers.length > 0 && (
+        <p className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">
+          {waitingForOthers.length} {waitingForOthers.length === 1 ? "item" : "items"} made on this device by {otherNames.join(", ")}{" "}
+          will sync when {otherNames.length === 1 ? "they sign" : "each of them signs"} in here again, so each sale stays under the right name.
+        </p>
+      )}
 
       {failed.length > 0 && (
         <section className="space-y-3">

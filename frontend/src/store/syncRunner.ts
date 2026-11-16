@@ -1,5 +1,5 @@
 import { api, isServerReachable, onReachability } from "@/lib/api"
-import { backoffMs, runSync, type SyncResult } from "@/lib/sync"
+import { backoffMs, runSync, sendableBy, type SyncResult } from "@/lib/sync"
 import type { AppStore } from "./index"
 import { attempted, needsAttention, synced } from "./outboxSlice"
 
@@ -44,7 +44,7 @@ export function startSync(store: AppStore) {
 
   const pendingCount = () => {
     const { auth, outbox } = store.getState()
-    return outbox.entries.filter((e) => e.state === "pending" && e.shopId === auth.shop?.id).length
+    return outbox.entries.filter((e) => e.state === "pending" && sendableBy(e, auth.shop?.id, auth.user?.id)).length
   }
 
   async function run() {
@@ -64,7 +64,7 @@ export function startSync(store: AppStore) {
         onAttempt: (id) => store.dispatch(attempted(id)),
         onSynced: (note) => store.dispatch(synced(note)),
         onAttention: (id, code, message) => store.dispatch(needsAttention({ id, code, message })),
-      })
+      }, auth.user?.id)
     } finally {
       if (result === "retry-later") {
         failures += 1

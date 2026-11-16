@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Ban, CalendarClock, Pencil, Printer, ReceiptText, RefreshCw, Ruler, Undo2, UserRound, Wallet } from "lucide-react"
+import { ArrowLeft, Ban, CalendarClock, Check, Loader2, Pencil, Printer, ReceiptText, RefreshCw, Ruler, ShieldAlert, Undo2, UserRound, Wallet } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 
 import { JobCardDoc } from "@/components/JobCardDoc"
@@ -47,6 +47,7 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [printing, setPrinting] = usePrint<"receipt" | "job">()
   const [thermal, setThermal] = useState<string | null>(null)
+  const [reviewing, setReviewing] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -109,6 +110,17 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
     setFlash(message ?? null)
   }
 
+  async function markReviewed() {
+    setReviewing(true)
+    try {
+      done(await api.post<OrderDetail>(`/orders/${order!.id}/reviewed`), "Marked as checked.")
+    } catch (err) {
+      setFlash(errorMessage(err))
+    } finally {
+      setReviewing(false)
+    }
+  }
+
   async function thermalPrint(kind: "receipt" | "job-card") {
     setThermal("Sending…")
     try {
@@ -158,6 +170,20 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
               </span>
             </div>
             {order.cancel_reason && <p className="mt-2 text-sm text-destructive">Cancelled: {order.cancel_reason}</p>}
+            {order.review_reason && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
+                <ShieldAlert className="size-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium">Check this offline sale: </span>
+                  {order.review_reason}
+                </span>
+                {role === "owner" && (
+                  <Button size="sm" variant="outline" disabled={reviewing} onClick={() => void markReviewed()}>
+                    {reviewing ? <Loader2 className="animate-spin" /> : <Check />} Mark as checked
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Balance</p>

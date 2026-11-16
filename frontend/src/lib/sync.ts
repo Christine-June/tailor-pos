@@ -47,9 +47,22 @@ export function describeSynced(entry: OutboxEntry, response: unknown): Omit<Sync
   return { id: entry.id, label: entry.label, warning: false, message: "Customer saved." }
 }
 
-export async function runSync(entries: OutboxEntry[], shopId: string, hooks: SyncHooks): Promise<SyncResult> {
-  const queue = entries.filter((e) => e.shopId === shopId)
-  const blocked = new Set(queue.filter((e) => e.state === "failed").map((e) => e.id))
+/**
+ * Can the signed-in person send this entry? Only its own shop's, and only their own: the server
+ * records whoever sends it as the one who made the sale, and applies their permissions.
+ */
+export function sendableBy(entry: OutboxEntry, shopId: string | undefined, userId: string | undefined): boolean {
+  return entry.shopId === shopId && (!entry.userId || entry.userId === userId)
+}
+
+export async function runSync(entries: OutboxEntry[], shopId: string, hooks: SyncHooks, userId?: string): Promise<SyncResult> {
+  const queue = entries.filter((e) => sendableBy(e, shopId, userId))
+  const sendable = new Set(queue.map((e) => e.id))
+  // Failed entries, and someone else's waiting entries: anything that needs them waits too.
+  const blocked = new Set([
+    ...queue.filter((e) => e.state === "failed").map((e) => e.id),
+    ...entries.filter((e) => !sendable.has(e.id)).map((e) => e.id),
+  ])
 
   for (const entry of queue) {
     if (entry.state !== "pending") continue

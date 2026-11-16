@@ -20,6 +20,8 @@ class TestDemoMode:
             assert world.owner.patch(f"/api/users/{owner['id']}", {"name": "Y"}).status_code == 403
             assert world.owner.post("/api/auth/change-password", {"current_password": "a", "new_password": "bbbbbbbb"}).status_code == 403
             assert world.owner.post("/api/settings/print-agent-token", {}).status_code == 403
+            # Otherwise one visitor could rename the shop or rewrite the receipt for the next.
+            assert world.owner.patch("/api/settings/shop", {"name": "Renamed"}).status_code == 403
             # Everyday work still works in the demo.
             assert world.bespoke().status_code == 201
         finally:

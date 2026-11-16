@@ -219,6 +219,53 @@ class TestOfflineRetries:
         assert res.status_code == 201, res.json
         assert res.json["created_offline"] is True
         assert world.stock(world.fabric_id) == Decimal("-40.000")
+        assert "went below zero" in res.json["review_reason"]
+
+
+class TestOfflineReview:
+    """The server can't tell a real offline sale from a faked one, so rules it skips are flagged."""
+
+    def cheap_offline_sale(self, world, client):
+        return client.post("/api/orders", {
+            "kind": "retail", "offline": True,
+            "items": [{"inventory_item_id": str(world.tie_id), "quantity": "1", "unit_price": "1.00"}],
+            "payments": [{"method": "cash", "amount": "1.00"}],
+        })
+
+    def test_cashier_offline_sale_below_list_is_kept_but_flagged(self, world):
+        res = self.cheap_offline_sale(world, world.cashier)
+        assert res.status_code == 201, res.json
+        assert res.json["review_reason"] == "Tie sold at 1.00 each, below the listed 500.00."
+        dash = world.owner.get("/api/reports/dashboard").json
+        assert [o["number"] for o in dash["to_review"]] == [res.json["number"]]
+        assert dash["to_review"][0]["created_by"].startswith("cashier")
+        # Only the owner sees or clears the list.
+        assert world.cashier.get("/api/reports/dashboard").json["to_review"] == []
+        assert world.cashier.post(f"/api/orders/{res.json['id']}/reviewed", {}).status_code == 403
+        assert world.owner.get("/api/orders?review=true").json["total"] == 1
+
+        cleared = world.owner.post(f"/api/orders/{res.json['id']}/reviewed", {})
+        assert cleared.status_code == 200 and cleared.json["review_reason"] is None
+        assert world.owner.get("/api/reports/dashboard").json["to_review"] == []
+
+    def test_owner_price_and_normal_sales_are_not_flagged(self, world):
+        assert self.cheap_offline_sale(world, world.owner).json["review_reason"] is None
+        assert retail_sale(world, offline=True).json["review_reason"] is None
+        assert retail_sale(world).json["review_reason"] is None
+
+    def test_online_sale_below_list_is_still_refused(self, world):
+        res = world.cashier.post("/api/orders", {
+            "kind": "retail",
+            "items": [{"inventory_item_id": str(world.tie_id), "quantity": "1", "unit_price": "1.00"}],
+            "payments": [{"method": "cash", "amount": "1.00"}],
+        })
+        assert res.status_code == 403
+
+    def test_archived_item_sold_offline_is_flagged(self, world):
+        world.owner.patch(f"/api/inventory/{world.tie_id}", {"archived": True})
+        res = retail_sale(world, offline=True)
+        assert res.status_code == 201
+        assert "no longer for sale" in res.json["review_reason"]
 
     def test_simultaneous_retries_of_one_order(self, app, world, uid):
         order_id = uid()

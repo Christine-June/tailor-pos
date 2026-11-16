@@ -41,6 +41,9 @@ class Config:
     # Direct TCP printing makes the API server open sockets to a host a tenant typed in.
     # Only safe when self-hosted on the shop's own LAN, so it is off unless explicitly enabled.
     ALLOW_DIRECT_PRINT = os.environ.get("ALLOW_DIRECT_PRINT", "false").lower() == "true"
+    # Even then, only printer ports (receipt printers listen on 9100), so the "printer" can't be the
+    # database, Redis or another service on the server's network.
+    PRINTER_PORTS = os.environ.get("PRINTER_PORTS", "9100-9109")
     PRINT_SOCKET_TIMEOUT = float(os.environ.get("PRINT_SOCKET_TIMEOUT", "5"))
     PRINT_JOB_RECLAIM_SECONDS = int(os.environ.get("PRINT_JOB_RECLAIM_SECONDS", "90"))
     PRINT_JOB_MAX_ATTEMPTS = int(os.environ.get("PRINT_JOB_MAX_ATTEMPTS", "5"))

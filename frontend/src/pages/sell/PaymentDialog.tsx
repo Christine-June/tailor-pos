@@ -80,7 +80,7 @@ export function PaymentDialog({ open, cart, totals, role, shop, user, onClose, o
   }
 
   function saveOffline(payload: OrderPayload) {
-    dispatch(enqueued(orderEntry(payload, cart, totals, shop.id, user.name)))
+    dispatch(enqueued(orderEntry(payload, cart, totals, shop.id, user)))
     onPaid(localOrderPreview(cart, settlement, totals, shop, user.name), settlement.change, true)
   }
 

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from ..errors import APIError
 from ..extensions import db
-from ..models import Customer, InventoryItem, Order, OrderItem, OrderKind, OrderStatus, Payment, PaymentKind, User
+from ..models import Customer, InventoryItem, Order, OrderItem, OrderKind, OrderStatus, Payment, PaymentKind, User, UserRole
 from ..models.base import money
 from ..utils.auth import STAFF, require_auth
 
@@ -169,8 +169,21 @@ def dashboard():
         )
     )
 
+    # Offline sales that skipped a rule. Only the owner can clear them, so only the owner sees them.
+    to_review = []
+    if g.user.role == UserRole.OWNER:
+        to_review = [
+            {"id": str(o.id), "number": o.number, "reason": o.review_reason, "total": money(o.total),
+             "created_by": o.created_by.name if o.created_by else None, "created_at": o.created_at.isoformat()}
+            for o in db.session.scalars(
+                select(Order).where(Order.shop_id == shop.id, Order.review_reason.is_not(None))
+                .order_by(Order.created_at.desc()).limit(20)
+            ).unique().all()
+        ]
+
     return jsonify({
         "today": today.isoformat(),
+        "to_review": to_review,
         "this_period": totals(first),
         "previous_period": totals(prev_first),
         "daily": [

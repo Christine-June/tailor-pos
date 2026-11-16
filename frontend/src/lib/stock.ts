@@ -46,8 +46,23 @@ export interface AdjustInput {
 
 export type AdjustBody = { reason: MovementReason; delta: string; note?: string } | { reason: MovementReason; counted_quantity: string; note?: string }
 
-/** Builds the request for /inventory/:id/adjust, or explains what's wrong. */
-export function buildAdjustment(input: AdjustInput, onHand: string, unit: string | null = null): { body: AdjustBody; after: bigint } | { error: string } {
+export const OWNER_ONLY_LOSS = "Only the owner can take stock off. Ask the owner to record it."
+
+/** Reasons this person can pick: taking stock off (damage) is the owner's call. */
+export function reasonsFor(canRemove: boolean) {
+  return canRemove ? MANUAL_REASONS : MANUAL_REASONS.filter((r) => r.direction !== "out")
+}
+
+/**
+ * Builds the request for /inventory/:id/adjust, or explains what's wrong.
+ * canRemove: false for cashiers, who can receive stock but not take it off (the server checks too).
+ */
+export function buildAdjustment(
+  input: AdjustInput,
+  onHand: string,
+  unit: string | null = null,
+  canRemove = true,
+): { body: AdjustBody; after: bigint } | { error: string } {
   const spec = MANUAL_REASONS.find((r) => r.reason === input.reason)
   if (!spec) return { error: "Choose a reason." }
   const current = parseSignedQuantity(onHand) ?? 0n
@@ -57,6 +72,7 @@ export function buildAdjustment(input: AdjustInput, onHand: string, unit: string
     if (counted === null) return { error: isWholeUnit(unit) ? "Enter how many are on the shelf, e.g. 12." : "Enter how much is on the shelf, e.g. 12.5." }
     const countProblem = wholeNumberProblem(counted, unit)
     if (countProblem) return { error: countProblem }
+    if (!canRemove && counted < current) return { error: OWNER_ONLY_LOSS }
     return { body: { reason: input.reason, counted_quantity: formatQuantity(counted) || "0" }, after: counted }
   }
   const amount = parseQuantity(input.amount)
@@ -64,6 +80,7 @@ export function buildAdjustment(input: AdjustInput, onHand: string, unit: string
   const problem = wholeNumberProblem(amount, unit)
   if (problem) return { error: problem }
   const out = spec.direction === "out" || (spec.direction === "either" && input.sign === "remove")
+  if (out && !canRemove) return { error: OWNER_ONLY_LOSS }
   const delta = out ? -amount : amount
   const after = current + delta
   if (after < 0n) return { error: `Only ${formatAmount(current > 0n ? current : 0n, unit)} in stock.` }

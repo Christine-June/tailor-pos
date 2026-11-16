@@ -122,7 +122,7 @@ function QuickAdd({ onCreated, onBack }: { onCreated: (c: Customer) => void; onB
       return
     }
     const customer = localCustomer(id, first.trim(), last.trim(), normalized)
-    dispatch(enqueued(customerEntry(customer, shop.id, user.name)))
+    dispatch(enqueued(customerEntry(customer, shop.id, user)))
     dispatch(customerAdded(customer))
     onCreated(customer)
   }

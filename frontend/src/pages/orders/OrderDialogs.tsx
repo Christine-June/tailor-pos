@@ -133,7 +133,7 @@ export function TakePaymentDialog({ open, order, role, onClose, onDone }: BasePr
     const changeText = change > 0n ? ` Give ${formatMoney(change)} change.` : ""
     // Offline: keep the payment on this device; the same id makes a later resend harmless.
     const queue = () => {
-      dispatch(enqueued(paymentEntry(order.id, order.number, body, shop.id, user.name)))
+      dispatch(enqueued(paymentEntry(order.id, order.number, body, shop.id, user)))
       return { order, message: `No internet: ${formatMoney(value!)} is saved on this device and will be added when the connection is back.${changeText}` }
     }
     void run(async () => {

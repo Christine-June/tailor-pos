@@ -13,7 +13,7 @@ import outboxReducer, {
   type OutboxEntry,
 } from "@/store/outboxSlice"
 import { ApiError } from "./api"
-import { backoffMs, describeSynced, runSync } from "./sync"
+import { backoffMs, describeSynced, runSync, sendableBy } from "./sync"
 
 function entry(id: string, overrides: Partial<OutboxEntry> = {}): OutboxEntry {
   return {
@@ -97,6 +97,19 @@ describe("runSync", () => {
     const h = hooks(async () => ({}))
     await runSync([entry("a", { shopId: "other" })], "shop-1", h)
     expect(h.send).not.toHaveBeenCalled()
+  })
+
+  it("only sends what the signed-in person made, so a sale keeps its seller and their permissions", async () => {
+    const h = hooks(async () => ({}))
+    const cashiers = entry("a", { userId: "cashier" })
+    const owners = entry("b", { userId: "owner" })
+    const legacy = entry("c") // queued before entries carried a user id
+    // A payment the owner took on the cashier's offline order waits for the cashier's order.
+    const payment = entry("p", { kind: "payment", userId: "owner", dependsOn: "a", path: "/orders/a/payments" })
+    await runSync([cashiers, owners, legacy, payment], "shop-1", h, "owner")
+    expect(h.send.mock.calls.map(([e]) => e.id)).toEqual(["b", "c"])
+    expect(sendableBy(cashiers, "shop-1", "cashier")).toBe(true)
+    expect(sendableBy(cashiers, "shop-2", "cashier")).toBe(false)
   })
 
   it("warns when an offline order lands as a draft", () => {

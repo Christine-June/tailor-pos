@@ -143,21 +143,32 @@ class TestInventory:
         assert moves[0]["balance_after"] == "12.500"
 
     def test_stock_count_records_the_difference(self, world):
-        res = world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "stock_count", "counted_quantity": "9.25"})
+        res = world.owner.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "stock_count", "counted_quantity": "9.25"})
         assert res.json["quantity_on_hand"] == "9.250"
         move = world.owner.get(f"/api/inventory/{world.fabric_id}/movements").json["items"][0]
         assert move["quantity_delta"] == "-0.750"
 
     def test_ledger_always_matches_balance(self, world):
         world.bespoke(quantity="1.25")
-        world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-0.5", "note": "Offcut"})
+        world.owner.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-0.5", "note": "Offcut"})
         moves = world.owner.get(f"/api/inventory/{world.fabric_id}/movements").json["items"]
         assert moves[0]["balance_after"] == "8.250"
         assert world.stock(world.fabric_id) == Decimal("8.250")
 
     def test_adjust_cannot_go_negative(self, world):
-        res = world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-100"})
+        res = world.owner.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-100"})
         assert res.status_code == 409
+
+    def test_only_the_owner_takes_stock_off(self, world):
+        for body in ({"reason": "waste", "delta": "-0.5"}, {"reason": "stock_count", "counted_quantity": "1"},
+                     {"reason": "adjustment", "delta": "-1"}):
+            res = world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", body)
+            assert res.status_code == 403, body
+            assert res.json["error"]["code"] == "stock_loss_owner_only"
+        assert world.stock(world.fabric_id) == Decimal("10.000")
+        # Receiving stock, or a count that finds more, is still fine for a cashier.
+        assert world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "purchase", "delta": "2"}).status_code == 200
+        assert world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "stock_count", "counted_quantity": "13"}).status_code == 200
 
     def test_cashier_cannot_create_or_see_cost(self, world):
         assert world.cashier.post("/api/inventory", {"name": "X"}).status_code == 403
@@ -192,7 +203,7 @@ class TestInventory:
         assert res.status_code == 200
 
     def test_cannot_switch_to_pieces_with_part_of_one_in_stock(self, world):
-        world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-0.5"})
+        world.owner.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-0.5"})
         res = world.owner.patch(f"/api/inventory/{world.fabric_id}", {"unit": "pcs"})
         assert res.json["error"]["code"] == "whole_number_required"
 

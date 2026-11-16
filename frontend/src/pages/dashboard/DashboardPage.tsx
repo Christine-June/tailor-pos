@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Ruler,
   Scissors,
+  ShieldAlert,
   ShoppingBag,
   Smartphone,
   Users,
@@ -49,6 +50,8 @@ interface DashboardData {
   customers: { total: number; new: number }
   workshop: Partial<Record<string, number>>
   overdue: number
+  /** Owner only: offline sales that skipped a rule, waiting to be checked. */
+  to_review?: { id: string; number: number; reason: string; total: string; created_by: string | null; created_at: string }[]
 }
 
 const day = (iso: string, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-KE", { ...opts, timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`))
@@ -126,10 +129,10 @@ function Kpi({ icon, label, value, change, hint }: { icon: ReactNode; label: str
 
 // The last numbers seen, so coming back to the dashboard shows them at once (no flash of
 // placeholders) while fresh ones load quietly. Cleared when another shop signs in.
-let lastSeen: { shopId: string; data: DashboardData } | null = null
+let lastSeen: { userId: string; data: DashboardData } | null = null
 
 function ShopDashboard({ user, shop }: { user: User; shop: Shop }) {
-  const [data, setData] = useState<DashboardData | null>(lastSeen?.shopId === shop.id ? lastSeen.data : null)
+  const [data, setData] = useState<DashboardData | null>(lastSeen?.userId === user.id ? lastSeen.data : null)
   const [error, setError] = useState<string | null>(null)
   const [series, setSeries] = useState<"takings" | "orders">("takings")
   const [reloadKey, setReloadKey] = useState(0)
@@ -140,12 +143,12 @@ function ShopDashboard({ user, shop }: { user: User; shop: Shop }) {
     api
       .get<DashboardData>("/reports/dashboard", { signal: controller.signal })
       .then((fresh) => {
-        lastSeen = { shopId: shop.id, data: fresh }
+        lastSeen = { userId: user.id, data: fresh }
         setData(fresh)
       })
       .catch((err) => !controller.signal.aborted && !lastSeen && setError(errorMessage(err)))
     return () => controller.abort()
-  }, [reloadKey, shop.id])
+  }, [reloadKey, shop.id, user.id])
 
   const header = (
     <Header
@@ -208,6 +211,32 @@ function ShopDashboard({ user, shop }: { user: User; shop: Shop }) {
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       {header}
+
+      {data.to_review && data.to_review.length > 0 && (
+        <section className="rounded-2xl border border-warning/40 bg-warning/10 p-4" aria-label="Offline sales to check">
+          <h2 className="flex items-center gap-2 font-semibold text-warning-foreground">
+            <ShieldAlert className="size-4" aria-hidden="true" />
+            {data.to_review.length === 1 ? "1 offline sale to check" : ` offline sales to check`}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Made while the internet was down, so the usual rules couldn't be applied at the counter. Open each one and mark it as checked once you're happy with it.
+          </p>
+          <ul className="mt-3 divide-y rounded-xl border bg-card text-sm">
+            {data.to_review.map((o) => (
+              <li key={o.id}>
+                <Link to={`/orders/${o.id}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-muted/60">
+                  <span className="font-medium">#{o.number}</span>
+                  <span className="min-w-0 flex-1 text-muted-foreground">{o.reason}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {o.created_by ?? "Unknown"} · {formatDateTime(o.created_at, shop.timezone)}
+                  </span>
+                  <span className="tabular-nums">{formatMoney(o.total)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Kpi icon={<Wallet className="size-4" />} label="Takings this week" value={formatMoney(now.takings)} change={percentChange(takingsNow, Number(cents(before.takings)))} />

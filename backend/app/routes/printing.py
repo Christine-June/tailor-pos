@@ -6,6 +6,7 @@ A printer problem never affects the sale: the order is already committed before 
 """
 import base64
 import hashlib
+import ipaddress
 import socket
 from datetime import timedelta
 from functools import wraps
@@ -28,7 +29,37 @@ agent_bp = Blueprint("print_agent", __name__, url_prefix="/api/print-agent")
 QUEUED_JOB_LIFETIME = timedelta(hours=24)
 
 
+def _port_allowed(port: int) -> bool:
+    for part in str(current_app.config["PRINTER_PORTS"]).split(","):
+        low, _, high = part.strip().partition("-")
+        try:
+            if int(low) <= port <= int(high or low):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def printer_address_problem(host: str | None, port: int | None) -> str | None:
+    """A printer on the shop's own network: a local IP address (not a name, so not "db" or "redis")
+    on a printer port. Public, cloud-metadata (169.254.x.x) and other special addresses are refused."""
+    if not host:
+        return None
+    try:
+        ip = ipaddress.ip_address(host.strip())
+    except ValueError:
+        return "Enter the printer's IP address, e.g. 192.168.1.50 (printed on its self-test page)."
+    if ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved or not (ip.is_private or ip.is_loopback):
+        return "Enter a local network address for the printer, e.g. 192.168.1.50."
+    if port is not None and not _port_allowed(port):
+        return f"Receipt printers use port 9100. Port {port} isn't allowed."
+    return None
+
+
 def send_to_network_printer(shop: Shop, payload: bytes) -> None:
+    problem = printer_address_problem(shop.printer_host, shop.printer_port)
+    if problem:
+        raise APIError(409, "printer_address_not_allowed", problem)
     timeout = current_app.config["PRINT_SOCKET_TIMEOUT"]
     with socket.create_connection((shop.printer_host, shop.printer_port), timeout=timeout) as sock:
         sock.settimeout(timeout)

@@ -65,7 +65,12 @@ def lock_order(shop_id, order_id) -> Order:
     return order
 
 
-def _build_lines(shop: Shop, user: User, inputs, offline: bool, start_position: int = 0) -> list[OrderItem]:
+def _build_lines(
+    shop: Shop, user: User, inputs, offline: bool, start_position: int = 0, review: list[str] | None = None
+) -> list[OrderItem]:
+    """Offline sales skip the price, archive and stock rules (the sale already happened), but the
+    server can't tell a real offline sale from a faked one, so each skipped rule is noted in `review`
+    for the owner to check."""
     catalog = lock_items(shop.id, [i.inventory_item_id for i in inputs if i.inventory_item_id])
     lines = []
     for position, data in enumerate(inputs, start=start_position):
@@ -74,8 +79,11 @@ def _build_lines(shop: Shop, user: User, inputs, offline: bool, start_position: 
             item = catalog.get(data.inventory_item_id)
             if item is None:
                 raise APIError(422, "unknown_item", "An item in this order no longer exists.")
-            if item.archived and not offline:
-                raise conflict("item_archived", f"{item.name} is no longer sold.")
+            if item.archived:
+                if not offline:
+                    raise conflict("item_archived", f"{item.name} is no longer sold.")
+                if review is not None:
+                    review.append(f"{item.name} was no longer for sale.")
         description = data.description or (item.name if item else None)
         if not description:
             raise APIError(422, "validation_error", "Each line needs a description.")
@@ -89,8 +97,11 @@ def _build_lines(shop: Shop, user: User, inputs, offline: bool, start_position: 
                 raise APIError(422, "validation_error", f"{description} needs a price.")
             unit_price = item.sell_price
         # Offline carts may hold a price that has since changed; that sale has already happened.
-        if item and unit_price < item.sell_price and user.role != UserRole.OWNER and not offline:
-            raise APIError(403, "price_override_forbidden", f"Only the owner can sell {item.name} below its listed price.")
+        if item and unit_price < item.sell_price and user.role != UserRole.OWNER:
+            if not offline:
+                raise APIError(403, "price_override_forbidden", f"Only the owner can sell {item.name} below its listed price.")
+            if review is not None:
+                review.append(f"{item.name} sold at {unit_price} each, below the listed {item.sell_price}.")
         lines.append(
             OrderItem(
                 shop_id=shop.id,
@@ -123,16 +134,33 @@ def required_deposit(order: Order, shop: Shop) -> Decimal:
     return round_money(order.total * shop.min_deposit_pct / 100)
 
 
-def _commit_stock(order: Order, lines, user: User, allow_negative: bool) -> None:
+def _commit_stock(order: Order, lines, user: User, allow_negative: bool, review: list[str] | None = None) -> None:
     catalog = lock_items(order.shop_id, [l.inventory_item_id for l in lines if l.inventory_item_id])
     for line in sorted(lines, key=lambda l: str(l.inventory_item_id)):
         item = catalog.get(line.inventory_item_id)
         if item is not None and item.track_stock:
+            was_short = item.quantity_on_hand - line.quantity < 0
             apply_movement(
                 item, -line.quantity, MovementReason.SALE,
                 user_id=user.id, order_id=order.id, note=f"Order #{order.number}", allow_negative=allow_negative,
             )
+            if was_short and review is not None:
+                review.append(f"{item.name} went below zero in stock.")
     order.stock_committed = True
+
+
+def _set_review(order: Order, review: list[str]) -> None:
+    if review:
+        text = " ".join(dict.fromkeys(review))
+        order.review_reason = text if len(text) <= 300 else text[:297] + "..."
+
+
+def mark_reviewed(shop: Shop, user: User, order_id) -> Order:
+    order = lock_order(shop.id, order_id)
+    if order.review_reason:
+        audit(shop.id, user.id, "order.reviewed", "order", order.id, reason=order.review_reason)
+        order.review_reason = None
+    return order
 
 
 def _release_stock(order: Order, user: User) -> None:
@@ -239,7 +267,8 @@ def create_order(shop: Shop, user: User, data) -> tuple[Order, bool]:
     # Assigns the UUID default so stock movements and payments can reference the order.
     db.session.flush()
 
-    order.items = _build_lines(shop, user, data.items, data.offline)
+    review: list[str] = []
+    order.items = _build_lines(shop, user, data.items, data.offline, review=review)
     # Set after the lines exist: the database requires discount <= subtotal on every flush.
     order.discount = data.discount
     recompute_totals(order, shop)
@@ -254,12 +283,16 @@ def create_order(shop: Shop, user: User, data) -> tuple[Order, bool]:
 
     target = _initial_status(order, shop, user, data, paid)
     if target != OrderStatus.DRAFT:
-        _commit_stock(order, order.items, user, allow_negative=data.offline)
+        _commit_stock(order, order.items, user, allow_negative=data.offline, review=review)
         order.status = target
     if target == OrderStatus.COMPLETED:
         order.completed_at = utcnow()
+    _set_review(order, review)
     _record_event(order, None, order.status, user, "Created offline" if data.offline else None)
-    audit(shop.id, user.id, "order.created", "order", order.id, number=number, total=str(order.total), offline=data.offline)
+    audit(
+        shop.id, user.id, "order.created", "order", order.id, number=number, total=str(order.total),
+        offline=data.offline, review=order.review_reason,
+    )
     db.session.flush()
     return order, True
 
