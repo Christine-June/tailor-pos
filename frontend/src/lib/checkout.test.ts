@@ -65,7 +65,7 @@ describe("cart problems", () => {
   it("adds up the same fabric across lines before checking stock", () => {
     const problems = cartProblems(cart({ lines: [line({ quantity: "3", available: "6.25" }), line({ quantity: "3.5", available: "6.25" })] }), "cashier")
     expect(problems).toHaveLength(1)
-    expect(problems[0]!.message).toBe("Only 6.25 m of Italian wool suiting in stock.")
+    expect(problems[0]!.message).toBe("Only 6.25 metres of Italian wool suiting in stock.")
   })
 
   it("requires a customer for a bespoke order and catches bad input", () => {

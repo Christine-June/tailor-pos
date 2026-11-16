@@ -1,6 +1,7 @@
 /** Stock form rules, kept pure so they can be tested. They mirror the server's validation. */
 import { formatQuantity, parseMoney, parseQuantity } from "./money"
 import type { ItemKind, MovementReason } from "./types"
+import { formatAmount, isWholeUnit, wholeNumberProblem } from "./units"
 
 export const REASON_LABEL: Record<MovementReason, string> = {
   purchase: "Stock received",
@@ -46,22 +47,26 @@ export interface AdjustInput {
 export type AdjustBody = { reason: MovementReason; delta: string; note?: string } | { reason: MovementReason; counted_quantity: string; note?: string }
 
 /** Builds the request for /inventory/:id/adjust, or explains what's wrong. */
-export function buildAdjustment(input: AdjustInput, onHand: string): { body: AdjustBody; after: bigint } | { error: string } {
+export function buildAdjustment(input: AdjustInput, onHand: string, unit: string | null = null): { body: AdjustBody; after: bigint } | { error: string } {
   const spec = MANUAL_REASONS.find((r) => r.reason === input.reason)
   if (!spec) return { error: "Choose a reason." }
   const current = parseSignedQuantity(onHand) ?? 0n
   if (spec.direction === "count") {
     // An empty shelf is a valid count.
     const counted = /^0*\.?0*$/.test(input.amount.trim()) && input.amount.trim() !== "" ? 0n : parseQuantity(input.amount)
-    if (counted === null) return { error: "Enter how much is on the shelf, e.g. 12.5." }
+    if (counted === null) return { error: isWholeUnit(unit) ? "Enter how many are on the shelf, e.g. 12." : "Enter how much is on the shelf, e.g. 12.5." }
+    const countProblem = wholeNumberProblem(counted, unit)
+    if (countProblem) return { error: countProblem }
     return { body: { reason: input.reason, counted_quantity: formatQuantity(counted) || "0" }, after: counted }
   }
   const amount = parseQuantity(input.amount)
-  if (amount === null) return { error: "Enter an amount above 0, up to 3 decimals." }
+  if (amount === null) return { error: isWholeUnit(unit) ? "Enter how many, e.g. 1, 2 or 3." : "Enter an amount above 0, up to 3 decimals." }
+  const problem = wholeNumberProblem(amount, unit)
+  if (problem) return { error: problem }
   const out = spec.direction === "out" || (spec.direction === "either" && input.sign === "remove")
   const delta = out ? -amount : amount
   const after = current + delta
-  if (after < 0n) return { error: `Only ${formatQuantity(current > 0n ? current : 0n) || "0"} in stock.` }
+  if (after < 0n) return { error: `Only ${formatAmount(current > 0n ? current : 0n, unit)} in stock.` }
   return { body: { reason: input.reason, delta: (out ? "-" : "") + formatQuantity(amount) }, after }
 }
 
@@ -81,7 +86,7 @@ export interface ItemDraft {
 /** Checks the item form and builds the request body. */
 export function buildItemBody(draft: ItemDraft, creating: boolean): { body: Record<string, unknown> } | { error: string } {
   if (!draft.name.trim()) return { error: "Give the item a name." }
-  if (!draft.unit.trim()) return { error: "Give a unit, e.g. m, pcs or job." }
+  if (!draft.unit.trim()) return { error: "Choose what it's sold in, e.g. pieces or metres." }
   const sell = parseMoney(draft.sellPrice || "0")
   if (sell === null) return { error: "Enter the selling price as an amount, e.g. 3500." }
   const cost = parseMoney(draft.costPrice || "0")
@@ -90,6 +95,8 @@ export function buildItemBody(draft: ItemDraft, creating: boolean): { body: Reco
   if (reorder === null) return { error: "Enter the reorder level as a quantity, e.g. 10." }
   const opening = draft.openingQuantity.trim() ? parseQuantity(draft.openingQuantity) : 0n
   if (opening === null) return { error: "Enter the opening stock as a quantity, e.g. 25.5." }
+  const wholeProblem = wholeNumberProblem(opening, draft.unit) ?? wholeNumberProblem(reorder, draft.unit)
+  if (wholeProblem) return { error: wholeProblem }
   const track = draft.kind !== "service" && draft.trackStock
   const body: Record<string, unknown> = {
     name: draft.name.trim(),

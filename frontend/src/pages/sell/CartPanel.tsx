@@ -9,6 +9,7 @@ import { cartProblems, cartTotals, lineAmount, type CartLine } from "@/lib/check
 import { formatDateTime, formatPhone, todayIn, trimZeros } from "@/lib/format"
 import { formatMoney, formatQuantity, parseQuantity } from "@/lib/money"
 import type { Measurement, Page, Role, Shop } from "@/lib/types"
+import { unitWord } from "@/lib/units"
 import { cn } from "@/lib/utils"
 import { cartCleared, customerChosen, detailsChanged, kindChanged, lineChanged, lineRemoved, measurementChosen } from "@/store/cartSlice"
 import { useAppDispatch, useAppSelector } from "@/store"
@@ -211,10 +212,10 @@ function CartRow({ line, canEditPrice, problem }: { line: CartLine; canEditPrice
               value={line.quantity}
               onChange={(e) => change({ quantity: e.target.value.replace(",", ".") })}
               className="h-8 w-20 text-right"
-              aria-label={`Quantity of ${line.description} in ${line.unit}`}
+              aria-label={`Quantity of ${line.description} in ${unitWord(line.unit)}`}
               aria-invalid={qty === null}
             />
-            <span className="text-xs text-muted-foreground">{line.unit}</span>
+            <span className="text-xs text-muted-foreground">{unitWord(line.unit, qty ?? 2000n)}</span>
           </div>
         ) : (
           <div className="flex items-center rounded-md border">

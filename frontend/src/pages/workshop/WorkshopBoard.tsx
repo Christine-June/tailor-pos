@@ -11,6 +11,7 @@ import { useMeasurementFields } from "@/hooks/useMeasurementFields"
 import { usePrint } from "@/hooks/usePrint"
 import { ApiError, api, errorMessage, isRetryable } from "@/lib/api"
 import { formatDate, formatDateTime, STATUS_LABEL, trimZeros } from "@/lib/format"
+import { formatAmount } from "@/lib/units"
 import { useAppDispatch, useAppSelector } from "@/store"
 import { boardCached } from "@/store/cacheSlice"
 import { groupValues } from "@/lib/measurements"
@@ -353,7 +354,7 @@ export function WorkshopBoard({ role, userId, shop }: { role: Role; userId: stri
             <ul className="space-y-1">
               {open.items.map((item, i) => (
                 <li key={i}>
-                  <span className="font-medium">{trimZeros(item.quantity)} × {item.description}</span>
+                  <span className="font-medium">{item.unit ? formatAmount(item.quantity, item.unit) : trimZeros(item.quantity)} × {item.description}</span>
                   {item.notes && <span className="block text-muted-foreground">{item.notes}</span>}
                 </li>
               ))}

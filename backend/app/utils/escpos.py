@@ -3,6 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from ..units import unit_word
+
 ESC = b"\x1b"
 GS = b"\x1d"
 
@@ -134,7 +136,7 @@ def build_receipt(shop, order) -> bytes:
     t.rule()
     for item in order.items:
         t.wrapped(item.description)
-        unit = f" {item.unit}" if item.unit else ""
+        unit = f" {unit_word(item.unit, item.quantity)}" if item.unit else ""
         t.columns(f"  {fmt_qty(item.quantity)}{unit} x {Decimal(item.unit_price):,.2f}", f"{Decimal(item.line_total):,.2f}")
     t.rule()
     if order.discount:
@@ -185,7 +187,7 @@ def build_job_card(shop, order, labels: dict[str, str] | None = None) -> bytes:
         t.wrapped(f"Tailor: {order.assigned_to.name}")
     t.rule()
     for item in order.items:
-        unit = f" {item.unit}" if item.unit else ""
+        unit = f" {unit_word(item.unit, item.quantity)}" if item.unit else ""
         t.wrapped(f"{fmt_qty(item.quantity)}{unit}  {item.description}")
         if item.notes:
             for part in wrap(item.notes, t.width - 2):

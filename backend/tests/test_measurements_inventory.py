@@ -173,6 +173,29 @@ class TestInventory:
         # The same SKU is fine in another shop.
         assert world.other_owner.post("/api/inventory", {"name": "B", "sku": "S1"}).status_code == 201
 
+    def test_unit_must_be_a_real_unit(self, world):
+        res = world.owner.post("/api/inventory", {"name": "Shirt", "unit": "3"})
+        assert res.status_code == 422
+        assert "Choose a unit" in res.json["error"]["message"]
+        assert world.owner.post("/api/inventory", {"name": "Shirt", "unit": "Pieces"}).json["unit"] == "pcs"
+
+    def test_pieces_are_whole_numbers(self, world):
+        res = world.owner.post("/api/inventory", {"name": "Shirt", "unit": "pcs", "opening_quantity": "2.5"})
+        assert res.status_code == 422
+        assert res.json["error"]["message"] == "Shirt is counted in pieces, so use a whole number (1, 2, 3...)."
+        res = world.cashier.post(f"/api/inventory/{world.tie_id}/adjust", {"reason": "purchase", "delta": "0.5"})
+        assert res.json["error"]["code"] == "whole_number_required"
+        res = world.cashier.post(f"/api/inventory/{world.tie_id}/adjust", {"reason": "purchase", "delta": "3"})
+        assert res.json["quantity_on_hand"] == "8.000"
+        # Metres still split.
+        res = world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "purchase", "delta": "0.5"})
+        assert res.status_code == 200
+
+    def test_cannot_switch_to_pieces_with_part_of_one_in_stock(self, world):
+        world.cashier.post(f"/api/inventory/{world.fabric_id}/adjust", {"reason": "waste", "delta": "-0.5"})
+        res = world.owner.patch(f"/api/inventory/{world.fabric_id}", {"unit": "pcs"})
+        assert res.json["error"]["code"] == "whole_number_required"
+
     def test_renaming_item_leaves_old_invoice_alone(self, world):
         order = world.bespoke().json
         world.owner.patch(f"/api/inventory/{world.fabric_id}", {"name": "Renamed", "sell_price": "9999.00"})

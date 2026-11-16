@@ -7,6 +7,7 @@ from ..models import InventoryItem, MovementReason, StockMovement, UserRole
 from ..models.shop import audit
 from ..schemas import InventoryIn, InventoryPatch, StockAdjustIn, parse
 from ..services.stock import apply_movement, lock_items
+from ..units import whole_problem
 from ..utils.auth import OWNER, STAFF, get_scoped, paging, require_auth
 
 bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
@@ -82,6 +83,11 @@ def update_item(item_id):
     if "sku" in data.model_fields_set and (data.sku or None) != item.sku:
         _check_sku(data.sku or None, exclude_id=item.id)
         item.sku = data.sku or None
+    unit = data.unit or item.unit
+    for value in (data.reorder_level, item.quantity_on_hand if data.unit else None):
+        problem = whole_problem(value, unit, data.name or item.name)
+        if problem:
+            raise APIError(422, "whole_number_required", problem)
     changed = {}
     for name in ("name", "kind", "category", "unit", "sell_price", "cost_price", "track_stock", "reorder_level", "archived"):
         if name in data.model_fields_set and (getattr(data, name) is not None or name == "category"):
@@ -108,6 +114,9 @@ def adjust_stock(item_id):
         raise conflict("not_tracked", f"Stock isn't tracked for {item.name}.")
     if data.counted_quantity is not None and data.counted_quantity < 0:
         raise APIError(422, "validation_error", "Counted quantity can't be negative.")
+    problem = whole_problem(data.delta if data.delta is not None else data.counted_quantity, item.unit, item.name)
+    if problem:
+        raise APIError(422, "whole_number_required", problem)
     delta = data.delta if data.delta is not None else data.counted_quantity - item.quantity_on_hand
     if delta == 0:
         return jsonify(_serialize(item))

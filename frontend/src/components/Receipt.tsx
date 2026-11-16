@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 
 import { formatDate, formatDateTime, formatPhone, METHOD_LABEL, trimZeros } from "@/lib/format"
 import { cents, formatMoney } from "@/lib/money"
+import { formatAmount } from "@/lib/units"
 import { offlineRef } from "@/lib/offline"
 import type { Order, Shop } from "@/lib/types"
 
@@ -42,8 +43,7 @@ export function Receipt({ order, shop }: { order: Order; shop: Shop }) {
           <p>{item.description}</p>
           <div className="flex justify-between pl-2">
             <span>
-              {qty(item.quantity)}
-              {item.unit ? ` ${item.unit}` : ""} x {formatMoney(item.unit_price, "").trim()}
+              {item.unit ? formatAmount(item.quantity, item.unit) : qty(item.quantity)} x {formatMoney(item.unit_price, "").trim()}
             </span>
             <span>{formatMoney(item.line_total, "").trim()}</span>
           </div>

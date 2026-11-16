@@ -15,6 +15,14 @@ def retail_sale(world, client=None, quantity="1", **kw):
 
 
 class TestCheckout:
+    def test_pieces_sell_in_whole_numbers(self, world):
+        res = retail_sale(world, quantity="1.5")
+        assert res.status_code == 422
+        assert res.json["error"]["code"] == "whole_number_required"
+        assert world.stock(world.tie_id) == Decimal("5.000")
+        # A sale already made at the counter while offline is still recorded.
+        assert retail_sale(world, quantity="1.5", offline=True).status_code == 201
+
     def test_split_tender_deposit_leaves_balance(self, world):
         res = world.bespoke(payments=[
             {"method": "cash", "amount": "3000.00"},

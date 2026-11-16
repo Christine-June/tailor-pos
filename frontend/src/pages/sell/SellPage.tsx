@@ -8,6 +8,7 @@ import { cartTotals } from "@/lib/checkout"
 import { formatDateTime } from "@/lib/format"
 import { formatMoney } from "@/lib/money"
 import type { Customer, InventoryItem, Order, Page } from "@/lib/types"
+import { formatAmount } from "@/lib/units"
 import { catalogCached, customersCached } from "@/store/cacheSlice"
 import { cartCleared, customerChosen, customLineAdded, itemAdded } from "@/store/cartSlice"
 import { useAppDispatch, useAppSelector } from "@/store"
@@ -169,7 +170,7 @@ export function SellPage() {
         onAdd={(item, quantity) => {
           dispatch(itemAdded({ item, quantity }))
           setMeasuring(null)
-          flash(`Added ${quantity} ${item.unit} ${item.name}`)
+          flash(`Added ${formatAmount(quantity, item.unit)} of ${item.name}`)
         }}
       />
       <CustomLineDialog

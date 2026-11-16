@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatMoney, formatQuantity, lineTotal, parseMoney, parseQuantity } from "@/lib/money"
 import type { InventoryItem } from "@/lib/types"
+import { formatAmount, perUnit, unitWord } from "@/lib/units"
 
 const QUICK_LENGTHS = ["0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "5"]
 
@@ -38,11 +39,11 @@ export function QuantityDialog({
       open
       onClose={onClose}
       title={item.name}
-      description={`${formatMoney(item.sell_price)} per ${item.unit}${available !== null ? ` · ${formatQuantity(available)} ${item.unit} in stock` : ""}`}
+      description={`${formatMoney(item.sell_price)} per ${perUnit(item.unit)}${available !== null ? ` · ${formatAmount(available, item.unit)} in stock` : ""}`}
     >
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="qty">How many {item.unit}?</Label>
+          <Label htmlFor="qty">How many {unitWord(item.unit)}?</Label>
           <Input
             id="qty"
             inputMode="decimal"
@@ -63,7 +64,7 @@ export function QuantityDialog({
         </div>
         <p className="min-h-5 text-sm" role="status">
           {tooMuch ? (
-            <span className="text-destructive">Only {formatQuantity(available!)} {item.unit} in stock.</span>
+            <span className="text-destructive">Only {formatAmount(available!, item.unit)} in stock.</span>
           ) : value !== "" && qty === null ? (
             <span className="text-destructive">Enter a number with up to 3 decimals.</span>
           ) : qty !== null ? (

@@ -3,14 +3,16 @@ import { PackagePlus, RefreshCw, Scissors, Search, Shirt, Ruler, Wrench } from "
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { formatMoney, formatQuantity, parseQuantity } from "@/lib/money"
+import { formatMoney, parseQuantity } from "@/lib/money"
 import type { InventoryItem, ItemKind } from "@/lib/types"
+import { formatAmount, isWholeUnit, perUnit, unitDef } from "@/lib/units"
 import { cn } from "@/lib/utils"
 
 const KIND_ICON: Record<ItemKind, typeof Shirt> = { fabric: Ruler, trim: Scissors, retail: Shirt, service: Wrench }
 
+/** Sold by length (any amount, e.g. 2.5 metres) rather than counted in whole pieces. */
 export function isMeasured(item: Pick<InventoryItem, "unit" | "kind">) {
-  return item.kind === "fabric" || ["m", "yd", "cm"].includes(item.unit.toLowerCase())
+  return unitDef(item.unit) ? !isWholeUnit(item.unit) : item.kind === "fabric"
 }
 
 interface ItemGridProps {
@@ -125,11 +127,11 @@ function ItemCard({ item, onPick }: { item: InventoryItem; onPick: (item: Invent
       <div className="mt-auto pt-2">
         <p className="font-semibold whitespace-nowrap">
           {formatMoney(item.sell_price)}
-          {isMeasured(item) && <span className="text-xs font-normal text-muted-foreground"> / {item.unit}</span>}
+          {isMeasured(item) && <span className="text-xs font-normal text-muted-foreground"> / {perUnit(item.unit)}</span>}
         </p>
         {item.track_stock && (
           <p className={cn("text-xs", out ? "text-destructive" : item.is_low ? "text-warning-foreground" : "text-muted-foreground")}>
-            {out ? "Out of stock" : `${formatQuantity(onHand!)} ${item.unit} left${item.is_low ? " · low" : ""}`}
+            {out ? "Out of stock" : `${formatAmount(onHand!, item.unit)} left${item.is_low ? " · low" : ""}`}
           </p>
         )}
       </div>

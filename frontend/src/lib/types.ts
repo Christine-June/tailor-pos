@@ -211,7 +211,7 @@ export interface JobCard {
   status: OrderStatus
   customer_name: string
   assigned_to: { id: string; name: string } | null
-  items: { description: string; quantity: string; notes: string | null }[]
+  items: { description: string; quantity: string; unit?: string | null; notes: string | null }[]
   measurement: Measurement | null
   due_date: string | null
   notes: string | null

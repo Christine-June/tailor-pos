@@ -23,6 +23,7 @@ import { api, errorMessage } from "@/lib/api"
 import { percentChange } from "@/lib/chart"
 import { formatDate, formatDateTime, METHOD_LABEL, STATUS_LABEL, trimZeros } from "@/lib/format"
 import { cents, formatMoney } from "@/lib/money"
+import { formatAmount } from "@/lib/units"
 import type { JobCard, Payment, Role, Shop, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { BOARD_COLUMNS, COLUMN_TITLE, dueState } from "@/lib/workflow"
@@ -312,7 +313,7 @@ function ShopDashboard({ user, shop }: { user: User; shop: Shop }) {
                       <div className="h-1.5 rounded-full bg-primary/70" style={{ width: topMax > 0n ? `${Number((cents(p.revenue) * 100n) / topMax)}%` : 0 }} />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {trimZeros(p.quantity)} {p.unit ?? ""}
+                      {p.unit ? formatAmount(p.quantity, p.unit) : trimZeros(p.quantity)}
                     </span>
                   </div>
                 </li>
@@ -391,7 +392,7 @@ export function AccountCard({ user, shop, staffOnDuty, link = true }: { user: Us
     .slice(0, 2)
     .toUpperCase()
   return (
-    <section className="rounded-2xl border bg-gradient-to-br from-primary to-[oklch(0.45_0.2_265)] p-5 text-primary-foreground shadow-sm">
+    <section className="rounded-2xl border bg-gradient-to-br from-primary to-sidebar-active p-5 text-primary-foreground shadow-sm">
       <div className="flex items-center gap-3">
         <span className="flex size-12 items-center justify-center rounded-full bg-white/20 text-lg font-semibold">{initials}</span>
         <div className="min-w-0">

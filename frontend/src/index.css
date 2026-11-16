@@ -4,8 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Light, airy workspace with a clear blue accent: cool grey page, white rounded cards, blue for
- * actions and the active menu item. The sign-in page keeps its deep ink panel (--sidebar tokens).
+ * Light, airy workspace in the sign-in page's deep navy: cool grey page, white rounded cards, and the
+ * same ink blue (--sidebar) for buttons and the active menu item, so the whole app matches sign-in.
  * System fonts only, so the app works offline and loads no third-party fonts.
  */
 :root {
@@ -16,14 +16,14 @@
   --card-foreground: oklch(0.23 0.03 262);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.23 0.03 262);
-  --primary: oklch(0.54 0.2 262);
+  --primary: oklch(0.24 0.045 265);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.955 0.012 255);
   --secondary-foreground: oklch(0.3 0.04 262);
   --muted: oklch(0.962 0.008 255);
   --muted-foreground: oklch(0.52 0.025 262);
-  --accent: oklch(0.945 0.03 258);
-  --accent-foreground: oklch(0.42 0.17 262);
+  --accent: oklch(0.95 0.012 262);
+  --accent-foreground: oklch(0.3 0.05 265);
   --brass: oklch(0.8 0.1 80);
   --destructive: oklch(0.56 0.21 27);
   --success: oklch(0.58 0.15 152);
@@ -31,15 +31,15 @@
   --warning-foreground: oklch(0.47 0.12 60);
   --border: oklch(0.925 0.008 255);
   --input: oklch(0.89 0.012 255);
-  --ring: oklch(0.56 0.18 262);
+  --ring: oklch(0.45 0.07 265);
   /* Sign-in page panel. */
   --sidebar: oklch(0.24 0.045 265);
   --sidebar-foreground: oklch(0.86 0.015 85);
   --sidebar-active: oklch(0.32 0.05 265);
-  /* App menu: light, with a blue pill for the current page. */
+  /* App menu: light, with a navy pill for the current page. */
   --nav: oklch(1 0 0);
   --nav-foreground: oklch(0.42 0.025 262);
-  --nav-active: oklch(0.54 0.2 262);
+  --nav-active: oklch(0.24 0.045 265);
   --nav-active-foreground: oklch(0.99 0 0);
   --nav-hover: oklch(0.96 0.015 258);
 }

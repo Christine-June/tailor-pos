@@ -142,7 +142,7 @@ class Order(db.Model):
             "status": self.status.value,
             "customer_name": self.customer.full_name if self.customer else "Walk-in",
             "assigned_to": {"id": str(self.assigned_to.id), "name": self.assigned_to.name} if self.assigned_to else None,
-            "items": [{"description": i.description, "quantity": money(i.quantity), "notes": i.notes} for i in self.items],
+            "items": [{"description": i.description, "quantity": money(i.quantity), "unit": i.unit, "notes": i.notes} for i in self.items],
             "measurement": self.measurement.to_dict() if self.measurement else None,
             "due_date": iso(self.due_date),
             "notes": self.notes,

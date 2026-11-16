@@ -1,6 +1,7 @@
 import { formatDate, formatDateTime, trimZeros } from "@/lib/format"
 import { groupValues, type FieldDef } from "@/lib/measurements"
 import type { JobCard } from "@/lib/types"
+import { formatAmount } from "@/lib/units"
 
 /** The workshop ticket: what to make and the exact measurements. Never shows prices. */
 export function JobCardDoc({ card, fields, timeZone }: { card: JobCard; fields: FieldDef[]; timeZone: string }) {
@@ -15,7 +16,7 @@ export function JobCardDoc({ card, fields, timeZone }: { card: JobCard; fields: 
       {card.items.map((item, i) => (
         <div key={i} className="mb-1">
           <p>
-            {trimZeros(item.quantity)} {item.description}
+            {item.unit ? formatAmount(item.quantity, item.unit) : trimZeros(item.quantity)} {item.description}
           </p>
           {item.notes && <p className="pl-2">{item.notes}</p>}
         </div>

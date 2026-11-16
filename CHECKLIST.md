@@ -96,6 +96,12 @@ Tick each box (`- [x]`) as we finish and verify it. We work top to bottom: one p
 - [x] Demo mode: sample shop with two weeks of trading, one-tap demo sign-in, account changes locked
 - [x] One command to share the demo with a public https link (DEMO.md)
 
+## Phase 10: Units and look fixes ✅
+- [x] Unit is a list (Piece, Metre, Yard, Set, Pair, Roll, Job), not free text; old items with a number as their unit become pieces
+- [x] Everywhere says "3 pieces", "2.5 metres", "KES 3,200 per piece" instead of "3 pcs" or "4 3"
+- [x] Pieces, sets, pairs, rolls and jobs only take whole numbers (adding stock, counts, selling), checked on the server too
+- [x] Buttons and menu use the sign-in page's navy
+
 ## Later (needed before selling widely in Kenya)
 - [ ] KRA eTIMS invoice integration (tax compliance)
 - [ ] M-Pesa STK push (Daraja API) instead of typing codes

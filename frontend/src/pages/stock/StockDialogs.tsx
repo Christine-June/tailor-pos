@@ -7,14 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api, errorMessage } from "@/lib/api"
 import { formatDateTime, trimZeros } from "@/lib/format"
-import { formatQuantity } from "@/lib/money"
 import { buildAdjustment, buildItemBody, KIND_LABEL, MANUAL_REASONS, REASON_LABEL, type ItemDraft } from "@/lib/stock"
 import type { InventoryItem, ItemKind, MovementReason, Page, StockMovement } from "@/lib/types"
+import { DEFAULT_UNIT, formatAmount, isWholeUnit, perUnit, unitDef, UNITS, unitWord } from "@/lib/units"
 import { cn } from "@/lib/utils"
 import { uuid } from "@/lib/uuid"
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-const DEFAULT_UNIT: Record<ItemKind, string> = { fabric: "m", trim: "pcs", retail: "pcs", service: "job" }
 
 function draftFrom(item: InventoryItem | null): ItemDraft {
   return {
@@ -158,15 +157,22 @@ export function ItemDialog({
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="item-unit">Unit</Label>
-            <Input id="item-unit" maxLength={10} value={draft.unit} onChange={(e) => set({ unit: e.target.value })} />
+            <Label htmlFor="item-unit">Sold by the</Label>
+            <select id="item-unit" className={selectClass} value={draft.unit} onChange={(e) => set({ unit: e.target.value })}>
+              {UNITS.map((u) => (
+                <option key={u.code} value={u.code}>
+                  {u.one[0]!.toUpperCase() + u.one.slice(1)}
+                </option>
+              ))}
+              {!unitDef(draft.unit) && <option value={draft.unit}>{draft.unit}</option>}
+            </select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="item-price">Price (KES)</Label>
+            <Label htmlFor="item-price">Price per {perUnit(draft.unit)} (KES)</Label>
             <Input id="item-price" inputMode="decimal" value={draft.sellPrice} onChange={(e) => set({ sellPrice: e.target.value })} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="item-cost">Cost (KES)</Label>
+            <Label htmlFor="item-cost">Cost per {perUnit(draft.unit)} (KES)</Label>
             <Input id="item-cost" inputMode="decimal" value={draft.costPrice} onChange={(e) => set({ costPrice: e.target.value })} placeholder="0" />
           </div>
         </div>
@@ -177,8 +183,8 @@ export function ItemDialog({
           </div>
           {draft.kind !== "service" && (
             <div className="space-y-1.5">
-              <Label htmlFor="item-reorder">Warn when stock falls to</Label>
-              <Input id="item-reorder" inputMode="decimal" value={draft.reorderLevel} onChange={(e) => set({ reorderLevel: e.target.value })} placeholder="0" />
+              <Label htmlFor="item-reorder">Warn when down to ({unitWord(draft.unit)})</Label>
+              <Input id="item-reorder" inputMode={isWholeUnit(draft.unit) ? "numeric" : "decimal"} value={draft.reorderLevel} onChange={(e) => set({ reorderLevel: e.target.value })} placeholder="0" />
             </div>
           )}
         </div>
@@ -190,8 +196,8 @@ export function ItemDialog({
         )}
         {creating && draft.kind !== "service" && draft.trackStock && (
           <div className="space-y-1.5">
-            <Label htmlFor="item-opening">In stock now ({draft.unit || "units"})</Label>
-            <Input id="item-opening" inputMode="decimal" value={draft.openingQuantity} onChange={(e) => set({ openingQuantity: e.target.value })} placeholder="0" />
+            <Label htmlFor="item-opening">How many {unitWord(draft.unit)} do you have now?</Label>
+            <Input id="item-opening" inputMode={isWholeUnit(draft.unit) ? "numeric" : "decimal"} value={draft.openingQuantity} onChange={(e) => set({ openingQuantity: e.target.value })} placeholder="0" />
           </div>
         )}
         {error && (
@@ -225,10 +231,10 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
 
   if (!item) return null
   const spec = MANUAL_REASONS.find((r) => r.reason === reason)!
-  const preview = amount.trim() ? buildAdjustment({ reason, amount, sign }, item.quantity_on_hand) : null
+  const preview = amount.trim() ? buildAdjustment({ reason, amount, sign }, item.quantity_on_hand, item.unit) : null
 
   async function save() {
-    const built = buildAdjustment({ reason, amount, sign }, item!.quantity_on_hand)
+    const built = buildAdjustment({ reason, amount, sign }, item!.quantity_on_hand, item!.unit)
     if ("error" in built) {
       setError(built.error)
       return
@@ -236,7 +242,7 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
     setBusy(true)
     try {
       const saved = await api.post<InventoryItem>(`/inventory/${item!.id}/adjust`, { ...built.body, note: note.trim() || null })
-      onSaved(saved, `${saved.name}: now ${trimZeros(saved.quantity_on_hand)} ${saved.unit}.`)
+      onSaved(saved, `${saved.name}: now ${formatAmount(saved.quantity_on_hand, saved.unit)}.`)
     } catch (err) {
       setError(errorMessage(err))
       setBusy(false)
@@ -249,7 +255,7 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
       onClose={onClose}
       dismissible={!busy}
       title={`Update stock: ${item.name}`}
-      description={`In stock now: ${trimZeros(item.quantity_on_hand)} ${item.unit}`}
+      description={`In stock now: ${formatAmount(item.quantity_on_hand, item.unit)}`}
       footer={
         <Button className="w-full" onClick={() => void save()} disabled={busy || !amount.trim()}>
           {busy && <Loader2 className="animate-spin" />}
@@ -295,14 +301,14 @@ export function AdjustDialog({ item, onClose, onSaved }: { item: InventoryItem |
         )}
         <div className="space-y-1.5">
           <Label htmlFor="adj-amount">
-            {spec.direction === "count" ? `How much is on the shelf? (${item.unit})` : `How much? (${item.unit})`}
+            {spec.direction === "count" ? `How many ${unitWord(item.unit)} are on the shelf?` : `How many ${unitWord(item.unit)}?`}
           </Label>
-          <Input id="adj-amount" autoFocus inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(",", "."))} className="h-11 text-lg" />
+          <Input id="adj-amount" autoFocus inputMode={isWholeUnit(item.unit) ? "numeric" : "decimal"} value={amount} onChange={(e) => setAmount(e.target.value.replace(",", "."))} className="h-11 text-lg" />
           {preview && ("error" in preview ? (
             <p className="text-sm text-destructive">{preview.error}</p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Stock will be {formatQuantity(preview.after < 0n ? -preview.after : preview.after) || "0"} {item.unit}
+              Stock will be {formatAmount(preview.after, item.unit)}
             </p>
           ))}
         </div>
@@ -336,7 +342,7 @@ export function MovementsDialog({ item, timeZone, onClose }: { item: InventoryIt
 
   if (!item) return null
   return (
-    <Dialog open onClose={onClose} title={`History: ${item.name}`} description={`In stock now: ${trimZeros(item.quantity_on_hand)} ${item.unit}`} className="sm:max-w-lg">
+    <Dialog open onClose={onClose} title={`History: ${item.name}`} description={`In stock now: ${formatAmount(item.quantity_on_hand, item.unit)}`} className="sm:max-w-lg">
       {error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : rows === null ? (
@@ -368,9 +374,9 @@ export function MovementsDialog({ item, timeZone, onClose }: { item: InventoryIt
                   </td>
                   <td className={cn("py-2 text-right tabular-nums", out ? "text-destructive" : "text-success")}>
                     {out ? "" : "+"}
-                    {trimZeros(m.quantity_delta)}
+                    {formatAmount(m.quantity_delta, item.unit)}
                   </td>
-                  <td className="py-2 text-right tabular-nums">{trimZeros(m.balance_after)}</td>
+                  <td className="py-2 text-right tabular-nums">{formatAmount(m.balance_after, item.unit)}</td>
                 </tr>
               )
             })}

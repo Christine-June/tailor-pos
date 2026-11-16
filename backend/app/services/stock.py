@@ -6,6 +6,7 @@ from sqlalchemy import select
 from ..errors import conflict
 from ..extensions import db
 from ..models import InventoryItem, MovementReason, StockMovement
+from ..units import unit_word
 
 
 def lock_items(shop_id, item_ids) -> dict:
@@ -37,7 +38,7 @@ def apply_movement(
     if delta < 0 and new_balance < 0 and not allow_negative:
         raise conflict(
             "insufficient_stock",
-            f"Only {item.quantity_on_hand.normalize():f} {item.unit} of {item.name} in stock.",
+            f"Only {item.quantity_on_hand.normalize():f} {unit_word(item.unit, item.quantity_on_hand)} of {item.name} in stock.",
             {"item_id": str(item.id), "available": str(item.quantity_on_hand)},
         )
     item.quantity_on_hand = new_balance

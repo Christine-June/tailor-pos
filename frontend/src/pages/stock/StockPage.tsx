@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { api, errorMessage } from "@/lib/api"
 import { trimZeros } from "@/lib/format"
 import { formatMoney, lineTotal, parseMoney } from "@/lib/money"
+import { formatAmount, perUnit } from "@/lib/units"
 import { KIND_LABEL, parseSignedQuantity } from "@/lib/stock"
 import type { InventoryItem, ItemKind, Page } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -165,7 +166,7 @@ export function StockPage() {
                       {i.track_stock ? (
                         <>
                           <span className={cn(qty < 0n && "font-medium text-destructive", qty >= 0n && i.is_low && "font-medium text-warning-foreground")}>
-                            {trimZeros(i.quantity_on_hand)} {i.unit}
+                            {formatAmount(i.quantity_on_hand, i.unit)}
                           </span>
                           {qty < 0n ? (
                             <span className="block text-xs text-destructive">Sold offline beyond stock: count the shelf</span>
@@ -180,7 +181,7 @@ export function StockPage() {
                     <td className="hidden px-4 py-2.5 text-right text-muted-foreground tabular-nums md:table-cell">{i.track_stock ? trimZeros(i.reorder_level) : ""}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       {formatMoney(i.sell_price)}
-                      <span className="text-xs text-muted-foreground"> /{i.unit}</span>
+                      <span className="text-xs text-muted-foreground"> / {perUnit(i.unit)}</span>
                     </td>
                     {isOwner && <td className="hidden px-4 py-2.5 text-right text-muted-foreground tabular-nums md:table-cell">{i.cost_price ? formatMoney(i.cost_price) : ""}</td>}
                     <td className="px-2 py-1.5 text-right whitespace-nowrap">

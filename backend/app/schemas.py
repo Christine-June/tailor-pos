@@ -6,10 +6,11 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from flask import request
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from .errors import APIError
 from .models import ItemKind, MovementReason, OrderKind, OrderStatus, PaymentMethod, PrinterMode, UserRole
+from .units import normalize_unit, whole_problem
 
 Money = Annotated[Decimal, Field(max_digits=12, decimal_places=2, ge=0, allow_inf_nan=False)]
 PositiveMoney = Annotated[Decimal, Field(max_digits=12, decimal_places=2, gt=0, allow_inf_nan=False)]
@@ -121,6 +122,16 @@ class InventoryIn(Schema):
     opening_quantity: Stock = Decimal("0")
     reorder_level: Stock = Decimal("0")
 
+    _unit = field_validator("unit")(lambda v: normalize_unit(v))
+
+    @model_validator(mode="after")
+    def _whole_numbers(self):
+        for value in (self.opening_quantity, self.reorder_level):
+            problem = whole_problem(value, self.unit, self.name)
+            if problem:
+                raise ValueError(problem)
+        return self
+
 
 class InventoryPatch(Schema):
     sku: str | None = Field(default=None, max_length=40)
@@ -133,6 +144,8 @@ class InventoryPatch(Schema):
     track_stock: bool | None = None
     reorder_level: Stock | None = None
     archived: bool | None = None
+
+    _unit = field_validator("unit")(lambda v: v if v is None else normalize_unit(v))
 
 
 class StockAdjustIn(Schema):
@@ -270,4 +283,5 @@ def parse(schema: type[Schema]):
             for e in err.errors()
         ]
         first = details[0]
-        raise APIError(422, "validation_error", f"{first['field']}: {first['message']}", details) from None
+        message = f"{first['field']}: {first['message']}" if first["field"] else first["message"]
+        raise APIError(422, "validation_error", message, details) from None

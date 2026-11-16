@@ -12,6 +12,7 @@ import { usePrint } from "@/hooks/usePrint"
 import { api, errorMessage } from "@/lib/api"
 import { formatDate, formatDateTime, formatPhone, METHOD_LABEL, STATUS_LABEL, todayIn, trimZeros } from "@/lib/format"
 import { cents, formatMoney } from "@/lib/money"
+import { formatAmount } from "@/lib/units"
 import type { JobCard, OrderDetail, OrderStatus, Role, Shop, StaffMember } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { allowedMoves, dueState, moveLabel } from "@/lib/workflow"
@@ -235,8 +236,7 @@ export function OrderDetailPage({ role, shop }: { role: Role; shop: Shop }) {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{item.description}</p>
                     <p className="text-muted-foreground">
-                      {trimZeros(item.quantity)}
-                      {item.unit ? ` ${item.unit}` : ""} × {formatMoney(item.unit_price)}
+                      {item.unit ? formatAmount(item.quantity, item.unit) : trimZeros(item.quantity)} × {formatMoney(item.unit_price)}
                     </p>
                     {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
                   </div>

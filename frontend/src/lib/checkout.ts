@@ -4,6 +4,7 @@
  */
 import { formatQuantity, includedVat, lineTotal, parseMoney, parseQuantity, percentOf, toApiMoney, formatMoney } from "./money"
 import type { Customer, Role, Shop } from "./types"
+import { formatAmount, unitDef, wholeNumberProblem } from "./units"
 
 export type SaleKind = "retail" | "bespoke"
 export type TenderMethod = "cash" | "mpesa" | "card"
@@ -84,6 +85,9 @@ export function cartProblems(cart: Cart, role: Role): Problem[] {
     const price = parseMoney(line.unitPrice)
     if (!line.description.trim()) problems.push({ lineKey: line.key, message: "Give this line a description." })
     if (qty === null) problems.push({ lineKey: line.key, message: `Enter a quantity for ${line.description || "this line"}.` })
+    else if (line.itemId && wholeNumberProblem(qty, line.unit)) {
+      problems.push({ lineKey: line.key, message: `${line.description} is counted in ${unitDef(line.unit)!.many}, so use a whole number.` })
+    }
     if (price === null) problems.push({ lineKey: line.key, message: `Enter a price for ${line.description || "this line"}.` })
     const list = parseMoney(line.listPrice)
     if (price !== null && list !== null && price < list && role !== "owner") {
@@ -97,10 +101,9 @@ export function cartProblems(cart: Cart, role: Role): Problem[] {
   for (const { qty, line } of wanted.values()) {
     const available = parseQuantity(line.available) ?? 0n
     if (qty > available) {
-      const unit = line.unit ? ` ${line.unit}` : ""
       problems.push({
         lineKey: line.key,
-        message: `Only ${available > 0n ? formatQuantity(available) : 0}${unit} of ${line.description} in stock.`,
+        message: `Only ${formatAmount(available > 0n ? available : 0n, line.unit)} of ${line.description} in stock.`,
       })
     }
   }

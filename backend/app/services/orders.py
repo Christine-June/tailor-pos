@@ -24,6 +24,7 @@ from ..models import (
 )
 from ..models.base import utcnow
 from ..models.shop import audit
+from ..units import whole_problem
 from .stock import apply_movement, lock_items
 
 CENT = Decimal("0.01")
@@ -78,6 +79,10 @@ def _build_lines(shop: Shop, user: User, inputs, offline: bool, start_position: 
         description = data.description or (item.name if item else None)
         if not description:
             raise APIError(422, "validation_error", "Each line needs a description.")
+        # An offline sale has already happened at the counter, so it is recorded as made.
+        problem = None if offline or item is None else whole_problem(data.quantity, item.unit, item.name)
+        if problem:
+            raise APIError(422, "whole_number_required", problem)
         unit_price = data.unit_price
         if unit_price is None:
             if item is None:
